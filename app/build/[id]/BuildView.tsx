@@ -1,12 +1,9 @@
 "use client";
 
-import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
-import Link from 'next/link';
+import { useState } from 'react';
 import Image from 'next/image';
-import { supabase } from '@/lib/supabase';
 import FavoriteButton from '@/components/FavoriteButton';
-import { Share2, Copy, Check } from 'lucide-react';
+import { Share2, Check } from 'lucide-react';
 
 interface Build {
   id: string;
@@ -21,23 +18,16 @@ interface Build {
   crystal_tears: any[];
 }
 
-export default function BuildView() {
-  const params = useParams();
-  const id = params?.id as string;
-  
-  const [build, setBuild] = useState<Build | null>(null);
-  const [loading, setLoading] = useState(true);
+export default function BuildView({ initialBuild }: { initialBuild: any }) {
+  const [build] = useState<Build>(initialBuild);
   const [isCopied, setIsCopied] = useState(false);
 
-  useEffect(() => {
-    async function fetchBuild() {
-      if (!id) return;
-      const { data } = await supabase.from('builds').select('*').eq('id', id).single();
-      if (data) setBuild(data as Build);
-      setLoading(false);
-    }
-    fetchBuild();
-  }, [id]);
+  // --- VÝPOČTY (Data už jsou v props, takže proběhnou hned) ---
+  const soulLevel = Object.values(build.stats).reduce((a, b) => a + b, 0) - 79;
+  const hp = Math.floor(300 + (build.stats.vigor * 15));
+  const fp = Math.floor(50 + (build.stats.mind * 9));
+  const stamina = Math.floor(80 + (build.stats.endurance * 2));
+  const load = (45 + (build.stats.endurance * 1.5)).toFixed(1);
 
   const copyLink = () => {
     navigator.clipboard.writeText(window.location.href);
@@ -45,26 +35,10 @@ export default function BuildView() {
     setTimeout(() => setIsCopied(false), 2000);
   };
 
-  if (loading) return (
-    <div className="min-h-[60vh] flex flex-col items-center justify-center">
-      <div className="animate-spin h-12 w-12 border-t-2 border-amber-500 rounded-full mb-4"></div>
-      <p className="text-amber-500 font-serif tracking-[0.2em] animate-pulse uppercase">Summoning Build...</p>
-    </div>
-  );
-
-  if (!build) return <div className="text-center py-20 text-stone-500">Build not found.</div>;
-
-  // --- VÝPOČTY ---
-  const soulLevel = Object.values(build.stats).reduce((a, b) => a + b, 0) - 79;
-  const hp = Math.floor(300 + (build.stats.vigor * 15));
-  const fp = Math.floor(50 + (build.stats.mind * 9));
-  const stamina = Math.floor(80 + (build.stats.endurance * 2));
-  const load = (45 + (build.stats.endurance * 1.5)).toFixed(1);
-
   return (
     <div className="max-w-6xl mx-auto px-4 py-8 animate-in fade-in duration-500">
       
-      {/* HEADER - Větší jméno a jasnější level */}
+      {/* HEADER */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-12 border-b border-stone-800 pb-10">
         <div className="flex items-center gap-8">
           <FavoriteButton buildId={build.id} />
@@ -91,10 +65,10 @@ export default function BuildView() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
         
-        {/* LEFT COLUMN: STATS - Větší písmo a výraznější hodnoty */}
+        {/* STATS */}
         <div className="space-y-8">
           <div className="bg-stone-900/40 border border-stone-800 p-8 rounded-xl backdrop-blur-sm">
-            <h3 className="text-stone-100 text-xl font-serif uppercase tracking-widest mb-8 border-b border-stone-800 pb-4">Attributes</h3>
+            <h3 className="text-stone-100 text-xl font-serif uppercase tracking-widest mb-8 border-b border-stone-800 pb-4 font-bold">Attributes</h3>
             <div className="space-y-6">
               {Object.entries(build.stats).map(([stat, value]) => (
                 <div key={stat} className="group">
@@ -104,7 +78,7 @@ export default function BuildView() {
                   </div>
                   <div className="h-2 bg-stone-800 rounded-full overflow-hidden">
                     <div 
-                      className="h-full bg-amber-600 group-hover:bg-amber-500 transition-all duration-700" 
+                      className="h-full bg-amber-600 transition-all duration-700" 
                       style={{ width: `${(value / 99) * 100}%` }}
                     />
                   </div>
@@ -112,7 +86,6 @@ export default function BuildView() {
               ))}
             </div>
 
-            {/* SECONDARY STATS - Jasné a čitelné boxy */}
             <div className="mt-12 grid grid-cols-2 gap-4">
               {[
                 { label: 'HP', val: hp, color: 'text-red-500' },
@@ -121,7 +94,7 @@ export default function BuildView() {
                 { label: 'Equip Load', val: load, color: 'text-stone-300' }
               ].map((s) => (
                 <div key={s.label} className="bg-stone-950/60 border border-stone-800 p-4 rounded-lg text-center shadow-inner">
-                  <div className="text-xs uppercase tracking-widest text-stone-500 mb-2 font-bold">{s.label}</div>
+                  <div className="text-xs uppercase tracking-widest text-stone-500 mb-2 font-bold font-serif">{s.label}</div>
                   <div className={`${s.color} font-bold text-xl`}>{s.val}</div>
                 </div>
               ))}
@@ -129,26 +102,21 @@ export default function BuildView() {
           </div>
         </div>
 
-        {/* RIGHT COLUMN: EQUIPMENT - Větší řádky a texty itemů */}
+        {/* EQUIPMENT */}
         <div className="lg:col-span-2 space-y-10">
-          
           <div className="bg-stone-900/40 border border-stone-800 p-8 rounded-xl">
-            <h3 className="text-stone-100 text-xl font-serif uppercase tracking-widest mb-8 border-b border-stone-800 pb-4">Armaments</h3>
+            <h3 className="text-stone-100 text-xl font-serif uppercase tracking-widest mb-8 border-b border-stone-800 pb-4 font-bold">Armaments</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {['rightHand1', 'leftHand1', 'rightHand2', 'leftHand2', 'rightHand3', 'leftHand3'].map((slot) => {
                 const item = build.equipment?.[slot];
                 return (
-                  <div key={slot} className="flex items-center gap-5 p-4 bg-stone-950/40 border border-stone-800/60 rounded-lg hover:border-amber-900 transition-colors group">
-                    <div className="w-16 h-16 relative bg-stone-900 border border-stone-800 rounded-md flex-shrink-0 overflow-hidden">
-                      {item?.image ? <Image src={item.image} alt={item.name} fill className="object-cover" /> : <div className="w-full h-full flex items-center justify-center text-xs text-stone-700">None</div>}
+                  <div key={slot} className="flex items-center gap-5 p-4 bg-stone-950/40 border border-stone-800 rounded-lg hover:border-amber-900 transition-colors group">
+                    <div className="w-16 h-16 relative bg-stone-900 border border-stone-800 rounded-md shrink-0 overflow-hidden">
+                      {item?.image && <Image src={item.image} alt={item.name} fill className="object-contain p-1" unoptimized />}
                     </div>
                     <div>
-                      <div className="text-[10px] uppercase text-stone-600 font-bold tracking-widest mb-1 group-hover:text-stone-400 transition-colors">
-                        {slot.replace(/([A-Z])/g, ' $1')}
-                      </div>
-                      <div className="text-stone-100 text-lg font-medium group-hover:text-amber-500 transition-colors">
-                        {item?.name || '---'}
-                      </div>
+                      <div className="text-[10px] uppercase text-stone-600 font-bold tracking-widest mb-1">{slot}</div>
+                      <div className="text-stone-100 text-lg font-medium group-hover:text-amber-500 transition-colors">{item?.name || '---'}</div>
                     </div>
                   </div>
                 );
@@ -157,19 +125,19 @@ export default function BuildView() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-            {/* ARMOR SECTION */}
+            {/* ARMOR */}
             <div className="bg-stone-900/40 border border-stone-800 p-8 rounded-xl">
-              <h3 className="text-stone-100 text-xl font-serif uppercase tracking-widest mb-8 border-b border-stone-800 pb-4">Armor</h3>
+              <h3 className="text-stone-100 text-xl font-serif uppercase tracking-widest mb-8 border-b border-stone-800 pb-4 font-bold">Armor</h3>
               <div className="space-y-5">
                 {['head', 'chest', 'hands', 'legs'].map((slot) => {
                   const item = build.equipment?.[slot];
                   return (
-                    <div key={slot} className="flex items-center gap-5">
-                      <div className="w-14 h-14 relative bg-stone-900 border border-stone-800 rounded flex-shrink-0 overflow-hidden shadow-lg">
-                        {item?.image && <Image src={item.image} alt={item.name} fill className="object-cover" />}
+                    <div key={slot} className="flex items-center gap-5 p-2 rounded hover:bg-stone-900/40 transition-colors">
+                      <div className="w-14 h-14 relative bg-stone-900 border border-stone-800 rounded overflow-hidden shrink-0">
+                        {item?.image && <Image src={item.image} alt={item.name} fill className="object-contain p-1" unoptimized />}
                       </div>
                       <div className="flex flex-col">
-                        <span className="text-xs text-stone-500 uppercase tracking-widest mb-1">{slot}</span>
+                        <span className="text-xs text-stone-500 uppercase tracking-widest mb-1 font-bold">{slot}</span>
                         <span className="text-stone-100 text-md font-medium">{item?.name || 'No Armor'}</span>
                       </div>
                     </div>
@@ -178,14 +146,14 @@ export default function BuildView() {
               </div>
             </div>
 
-            {/* TALISMANS SECTION */}
+            {/* TALISMANS */}
             <div className="bg-stone-900/40 border border-stone-800 p-8 rounded-xl">
-              <h3 className="text-stone-100 text-xl font-serif uppercase tracking-widest mb-8 border-b border-stone-800 pb-4">Talismans</h3>
+              <h3 className="text-stone-100 text-xl font-serif uppercase tracking-widest mb-8 border-b border-stone-800 pb-4 font-bold">Talismans</h3>
               <div className="space-y-5">
                 {build.talismans?.map((item, i) => (
-                  <div key={i} className="flex items-center gap-5">
-                    <div className="w-14 h-14 relative bg-stone-900 border border-stone-800 rounded flex-shrink-0 overflow-hidden shadow-lg">
-                      {item?.image && <Image src={item.image} alt={item.name} fill className="object-cover" />}
+                  <div key={i} className="flex items-center gap-5 p-2 rounded hover:bg-stone-900/40 transition-colors">
+                    <div className="w-14 h-14 relative bg-stone-900 border border-stone-800 rounded overflow-hidden shrink-0">
+                      {item?.image && <Image src={item.image} alt={item.name} fill className="object-contain p-1" unoptimized />}
                     </div>
                     <span className="text-stone-100 text-md font-medium">{item?.name || 'Empty Slot'}</span>
                   </div>
@@ -194,9 +162,9 @@ export default function BuildView() {
             </div>
           </div>
 
-          {/* MAGIC & MISC - Větší texty pro kouzla */}
+          {/* MAGIC */}
           <div className="bg-stone-900/40 border border-stone-800 p-8 rounded-xl">
-            <h3 className="text-stone-100 text-xl font-serif uppercase tracking-widest mb-8 border-b border-stone-800 pb-4">Magic & Wondrous Physick</h3>
+            <h3 className="text-stone-100 text-xl font-serif uppercase tracking-widest mb-8 border-b border-stone-800 pb-4 font-bold">Magic & Wondrous Physick</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
               <div className="space-y-3">
                 <span className="text-xs text-stone-500 uppercase font-bold tracking-widest block mb-4">Spells</span>
@@ -209,14 +177,13 @@ export default function BuildView() {
               <div className="space-y-3">
                 <span className="text-xs text-stone-500 uppercase font-bold tracking-widest block mb-4">Crystal Tears</span>
                 {build.crystal_tears?.map((t, i) => t && (
-                  <div key={i} className="text-amber-500/90 text-md bg-stone-950/40 p-4 rounded-lg border border-stone-800/80 hover:border-amber-900 transition-colors font-medium">
+                  <div key={i} className="text-amber-500/90 text-md bg-stone-950/40 p-4 rounded-lg border border-stone-800/80 font-medium">
                     {t.name}
                   </div>
                 ))}
               </div>
             </div>
           </div>
-
         </div>
       </div>
     </div>

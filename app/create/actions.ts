@@ -2,7 +2,6 @@
 
 import { createClient } from "@/utils/supabase/server";
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 
 export async function createBuild(formData: {
   name: string;
@@ -15,11 +14,9 @@ export async function createBuild(formData: {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
-  if (!user) {
-    throw new Error("Unauthorized");
-  }
+  if (!user) throw new Error("Unauthorized");
 
-  const { error } = await supabase.from('builds').insert({
+  const { data, error } = await supabase.from('builds').insert({
     user_id: user.id,
     name: formData.name,
     stats: formData.stats,
@@ -27,13 +24,10 @@ export async function createBuild(formData: {
     talismans: formData.talismans,
     spells: formData.spells,
     crystal_tears: formData.tears
-  });
+  }).select().single(); // Přidáme select, abychom dostali ID nového buildu
 
-  if (error) {
-    throw new Error(error.message);
-  }
+  if (error) throw new Error(error.message);
 
-  revalidatePath("/builds");
   revalidatePath("/dashboard");
-  redirect("/dashboard");
+  return { success: true, buildId: data.id }; // Vrátíme ID místo redirectu
 }
