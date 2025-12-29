@@ -142,7 +142,7 @@ export default function BuildPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        <div className="bg-stone-900/50 border border-stone-800 p-6 rounded-lg h-fit">
+        <div className="bg-stone-900/50 border border-stone-800 p-6 rounded-lg h-full">
           <h2 className="text-2xl text-stone-200 font-serif mb-6 pb-2 border-b border-stone-700">Attributes</h2>
           <div className="space-y-1">
             {Object.entries(build.stats).map(([key, val]) => (
@@ -151,7 +151,7 @@ export default function BuildPage() {
           </div>
         </div>
 
-        <div className="bg-stone-900/50 border border-stone-800 p-6 rounded-lg h-fit">
+        <div className="bg-stone-900/50 border border-stone-800 p-6 rounded-lg h-full">
           <h2 className="text-2xl text-stone-200 font-serif mb-6 pb-2 border-b border-stone-700">Equipment</h2>
           <div className="space-y-2">
             <EquipmentRow label="Right Hand" itemId={build.equipment.rightHand} />

@@ -34,6 +34,7 @@ export default function CreateBuild() {
   });
 
   const soulLevel = Object.values(stats).reduce((a, b) => a + b, 0) - 79;
+  const isNameValid = buildName.trim().length > 0;
 
   useEffect(() => {
     async function fetchGear() {
@@ -61,10 +62,7 @@ export default function CreateBuild() {
   };
 
   const saveBuild = async () => {
-    if (!buildName.trim()) {
-      alert("Please name your build before saving.");
-      return;
-    }
+    if (!isNameValid) return;
 
     setIsSaving(true);
     
@@ -118,19 +116,25 @@ export default function CreateBuild() {
   return (
     <div className="max-w-6xl mx-auto pb-20">
       
-      {/* NAME INPUT */}
       <div className="mb-8">
         <input 
           type="text" 
-          placeholder="Name your build..." 
-          className="w-full bg-transparent text-4xl md:text-5xl font-bold text-amber-500 placeholder-stone-700 border-b border-stone-800 focus:border-amber-500 outline-none py-4 text-center"
+          placeholder="ENTER BUILD NAME..." 
+          className={`w-full bg-transparent text-4xl md:text-5xl font-bold placeholder-stone-700 border-b outline-none py-4 text-center transition-colors
+            ${isNameValid ? 'text-amber-500 border-amber-500' : 'text-stone-500 border-stone-800 focus:border-red-900'}
+          `}
           value={buildName}
           onChange={(e) => setBuildName(e.target.value)}
         />
+        {!isNameValid && (
+          <p className="text-center text-stone-600 text-sm mt-2 uppercase tracking-widest">
+            * Name required to save
+          </p>
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <div className="bg-stone-900/80 backdrop-blur border border-stone-800 p-6 rounded-lg shadow-2xl">
+        <div className="bg-stone-900/80 backdrop-blur border border-stone-800 p-6 rounded-lg shadow-2xl h-full">
           <div className="flex justify-between items-end mb-8 border-b border-stone-700 pb-4">
             <h2 className="text-3xl text-amber-500 font-serif tracking-widest">Attributes</h2>
             <div className="text-right">
@@ -160,79 +164,86 @@ export default function CreateBuild() {
           </div>
         </div>
 
-        <div className="bg-stone-900/80 backdrop-blur border border-stone-800 p-6 rounded-lg shadow-2xl h-fit">
-          <h2 className="text-3xl text-amber-500 font-serif tracking-widest mb-8 border-b border-stone-700 pb-4">
-            Equipment
-          </h2>
-          
-          {loading ? (
-            <div className="text-stone-500 animate-pulse text-center py-10">Accessing Inventory...</div>
-          ) : (
-            <div className="space-y-6">
-              <div>
-                <h3 className="text-stone-400 text-sm uppercase font-bold mb-2 flex items-center gap-2">
-                  <span className="w-2 h-2 bg-amber-600 rounded-full"></span> Armament
-                </h3>
-                <EquipmentSlot 
-                  label="Right Hand" 
-                  value={equipment.rightHand} 
-                  options={weapons} 
-                  onChange={(v: string) => setEquipment(prev => ({...prev, rightHand: v}))} 
-                />
-              </div>
-
-              <div>
-                <h3 className="text-stone-400 text-sm uppercase font-bold mb-2 mt-6 flex items-center gap-2">
-                  <span className="w-2 h-2 bg-stone-500 rounded-full"></span> Armor
-                </h3>
-                <div className="grid grid-cols-2 gap-3">
+        <div className="bg-stone-900/80 backdrop-blur border border-stone-800 p-6 rounded-lg shadow-2xl h-full flex flex-col justify-between">
+          <div>
+            <h2 className="text-3xl text-amber-500 font-serif tracking-widest mb-8 border-b border-stone-700 pb-4">
+              Equipment
+            </h2>
+            
+            {loading ? (
+              <div className="text-stone-500 animate-pulse text-center py-10">Accessing Inventory...</div>
+            ) : (
+              <div className="space-y-6">
+                <div>
+                  <h3 className="text-stone-400 text-sm uppercase font-bold mb-2 flex items-center gap-2">
+                    <span className="w-2 h-2 bg-amber-600 rounded-full"></span> Armament
+                  </h3>
                   <EquipmentSlot 
-                    label="Head" 
-                    value={equipment.head} 
-                    options={armors} 
-                    onChange={(v: string) => setEquipment(prev => ({...prev, head: v}))} 
-                  />
-                  <EquipmentSlot 
-                    label="Chest" 
-                    value={equipment.chest} 
-                    options={armors} 
-                    onChange={(v: string) => setEquipment(prev => ({...prev, chest: v}))} 
-                  />
-                  <EquipmentSlot 
-                    label="Gauntlets" 
-                    value={equipment.hands} 
-                    options={armors} 
-                    onChange={(v: string) => setEquipment(prev => ({...prev, hands: v}))} 
-                  />
-                  <EquipmentSlot 
-                    label="Legs" 
-                    value={equipment.legs} 
-                    options={armors} 
-                    onChange={(v: string) => setEquipment(prev => ({...prev, legs: v}))} 
+                    label="Right Hand" 
+                    value={equipment.rightHand} 
+                    options={weapons} 
+                    onChange={(v: string) => setEquipment(prev => ({...prev, rightHand: v}))} 
                   />
                 </div>
-              </div>
-              
-              <div className="mt-8 pt-6 border-t border-stone-800 opacity-50">
-                 <div className="text-xs text-stone-600 uppercase text-center">Talismans (Coming Soon)</div>
-                 <div className="flex justify-center gap-2 mt-2">
-                    {[1,2,3,4].map(i => (
-                      <div key={i} className="w-10 h-10 border border-stone-800 rounded bg-stone-950"></div>
-                    ))}
-                 </div>
-              </div>
 
-            </div>
-          )}
+                <div>
+                  <h3 className="text-stone-400 text-sm uppercase font-bold mb-2 mt-6 flex items-center gap-2">
+                    <span className="w-2 h-2 bg-stone-500 rounded-full"></span> Armor
+                  </h3>
+                  <div className="grid grid-cols-2 gap-3">
+                    <EquipmentSlot 
+                      label="Head" 
+                      value={equipment.head} 
+                      options={armors} 
+                      onChange={(v: string) => setEquipment(prev => ({...prev, head: v}))} 
+                    />
+                    <EquipmentSlot 
+                      label="Chest" 
+                      value={equipment.chest} 
+                      options={armors} 
+                      onChange={(v: string) => setEquipment(prev => ({...prev, chest: v}))} 
+                    />
+                    <EquipmentSlot 
+                      label="Gauntlets" 
+                      value={equipment.hands} 
+                      options={armors} 
+                      onChange={(v: string) => setEquipment(prev => ({...prev, hands: v}))} 
+                    />
+                    <EquipmentSlot 
+                      label="Legs" 
+                      value={equipment.legs} 
+                      options={armors} 
+                      onChange={(v: string) => setEquipment(prev => ({...prev, legs: v}))} 
+                    />
+                  </div>
+                </div>
+                
+                <div className="mt-8 pt-6 border-t border-stone-800 opacity-50">
+                   <div className="text-xs text-stone-600 uppercase text-center">Talismans (Coming Soon)</div>
+                   <div className="flex justify-center gap-2 mt-2">
+                      {[1,2,3,4].map(i => (
+                        <div key={i} className="w-10 h-10 border border-stone-800 rounded bg-stone-950"></div>
+                      ))}
+                   </div>
+                </div>
+
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="col-span-1 lg:col-span-2 flex justify-center mt-8 pt-8 border-t border-stone-800">
           <button
             onClick={saveBuild}
-            disabled={isSaving}
-            className="bg-amber-600 hover:bg-amber-500 text-stone-950 font-bold py-4 px-12 rounded shadow-lg text-xl tracking-widest transition-all hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={isSaving || !isNameValid}
+            className={`
+              font-bold py-4 px-12 rounded shadow-lg text-xl tracking-widest transition-all
+              ${!isNameValid 
+                ? 'bg-stone-800 text-stone-600 cursor-not-allowed border border-stone-700' 
+                : 'bg-amber-600 hover:bg-amber-500 text-stone-950 hover:scale-105 shadow-amber-900/20'}
+            `}
           >
-            {isSaving ? 'SAVING...' : 'SAVE BUILD'}
+            {isSaving ? 'SAVING...' : isNameValid ? 'SAVE BUILD' : 'ENTER NAME'}
           </button>
         </div>
 
