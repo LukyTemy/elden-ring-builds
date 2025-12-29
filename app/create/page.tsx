@@ -7,33 +7,50 @@ interface Item {
   id: string;
   name: string;
   category: string;
+  image: string | null;
 }
 
 export default function CreateBuild() {
+  // --- STATS STATE ---
   const [stats, setStats] = useState({
     vigor: 10, mind: 10, endurance: 10, strength: 10, 
     dexterity: 10, intelligence: 10, faith: 10, arcane: 10
   });
   
+  // --- INVENTORY STATE ---
   const [weapons, setWeapons] = useState<Item[]>([]);
-  const [selectedWeapon, setSelectedWeapon] = useState<string>("");
+  const [armors, setArmors] = useState<Item[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Výpočet Soul Levelu (základ je cca 1, zjednodušeno)
+  // --- SELECTION STATE ---
+  const [equipment, setEquipment] = useState({
+    rightHand: "",
+    head: "",
+    chest: "",
+    hands: "",
+    legs: ""
+  });
+
+  // Výpočet Soul Levelu
   const soulLevel = Object.values(stats).reduce((a, b) => a + b, 0) - 79;
 
   useEffect(() => {
-    async function fetchItems() {
-      const { data } = await supabase
+    async function fetchGear() {
+      // Stáhneme zbraně i brnění najednou
+      const { data, error } = await supabase
         .from('items')
-        .select('id, name, category')
-        .eq('category', 'weapons')
+        .select('id, name, category, image')
+        .in('category', ['weapons', 'armors']) // POZOR: Musí odpovídat tomu, co je v DB (množné číslo)
         .order('name');
       
-      if (data) setWeapons(data);
+      if (data) {
+        setWeapons(data.filter(i => i.category === 'weapons'));
+        setArmors(data.filter(i => i.category === 'armors'));
+      }
+      if (error) console.error(error);
       setLoading(false);
     }
-    fetchItems();
+    fetchGear();
   }, []);
 
   const handleStatChange = (stat: keyof typeof stats, value: string) => {
@@ -43,62 +60,129 @@ export default function CreateBuild() {
     }
   };
 
+  // Pomocná komponenta pro Select Slot
+  const EquipmentSlot = ({ label, value, options, onChange, icon }: any) => (
+    <div className="bg-stone-950/50 p-3 rounded border border-stone-800 hover:border-amber-700 transition-colors group">
+      <label className="block text-xs text-stone-500 mb-1 uppercase tracking-widest group-hover:text-amber-500 transition-colors">
+        {label}
+      </label>
+      <select 
+        className="w-full bg-transparent text-stone-300 outline-none text-sm cursor-pointer"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+      >
+        <option value="" className="bg-stone-900 text-stone-500">-- Empty --</option>
+        {options.map((item: Item) => (
+          <option key={item.id} value={item.id} className="bg-stone-900">
+            {item.name}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+
   return (
-    <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8">
+    <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8 pb-20">
       
-      {/* Levý sloupec - STATY */}
-      <div className="bg-stone-900 p-6 rounded-lg border border-stone-800 shadow-xl">
-        <div className="flex justify-between items-center mb-6 border-b border-stone-700 pb-4">
-          <h2 className="text-2xl text-amber-500 font-bold">Stats</h2>
-          <span className="text-xl text-stone-300">Level: <span className="text-white font-bold">{soulLevel > 1 ? soulLevel : 1}</span></span>
+      {/* --- LEVÝ SLOUPEC: STATY --- */}
+      <div className="bg-stone-900/80 backdrop-blur border border-stone-800 p-6 rounded-lg shadow-2xl">
+        <div className="flex justify-between items-end mb-8 border-b border-stone-700 pb-4">
+          <h2 className="text-3xl text-amber-500 font-serif tracking-widest">Attributes</h2>
+          <div className="text-right">
+            <span className="text-stone-400 text-sm uppercase">Soul Level</span>
+            <div className="text-4xl font-bold text-white">{soulLevel > 1 ? soulLevel : 1}</div>
+          </div>
         </div>
 
-        <div className="space-y-4">
+        <div className="space-y-3">
           {Object.entries(stats).map(([key, val]) => (
-            <div key={key} className="flex items-center justify-between">
-              <label className="capitalize text-stone-400 w-32 font-semibold">{key}</label>
+            <div key={key} className="flex items-center gap-4 hover:bg-stone-800/50 p-1 rounded transition-colors">
+              <label className="capitalize text-stone-400 w-28 font-medium">{key}</label>
               <input 
                 type="number" 
                 value={val} 
                 onChange={(e) => handleStatChange(key as keyof typeof stats, e.target.value)}
-                className="w-16 bg-stone-950 border border-stone-700 rounded p-2 text-center text-amber-500 focus:border-amber-500 outline-none"
+                className="w-14 bg-stone-950 border border-stone-700 rounded p-1 text-center text-amber-500 font-bold focus:border-amber-500 outline-none"
               />
               <input 
                 type="range" min="1" max="99" 
                 value={val} 
                 onChange={(e) => handleStatChange(key as keyof typeof stats, e.target.value)}
-                className="w-full ml-4 accent-amber-600"
+                className="flex-1 accent-amber-600 h-1 bg-stone-700 rounded-lg appearance-none cursor-pointer"
               />
             </div>
           ))}
         </div>
       </div>
 
-      {/* Pravý sloupec - VYBAVENÍ */}
-      <div className="bg-stone-900 p-6 rounded-lg border border-stone-800 shadow-xl">
-        <h2 className="text-2xl text-amber-500 font-bold mb-6 border-b border-stone-700 pb-4">Equipment</h2>
+      {/* --- PRAVÝ SLOUPEC: VYBAVENÍ --- */}
+      <div className="bg-stone-900/80 backdrop-blur border border-stone-800 p-6 rounded-lg shadow-2xl h-fit">
+        <h2 className="text-3xl text-amber-500 font-serif tracking-widest mb-8 border-b border-stone-700 pb-4">
+          Equipment
+        </h2>
         
-        <div className="mb-6">
-          <label className="block text-stone-400 mb-2 font-semibold">Right Hand Weapon</label>
-          {loading ? (
-            <div className="text-stone-500 animate-pulse">Loading arsenal...</div>
-          ) : (
-            <select 
-              className="w-full bg-stone-950 border border-stone-700 rounded p-3 text-stone-200 outline-none focus:border-amber-500"
-              value={selectedWeapon}
-              onChange={(e) => setSelectedWeapon(e.target.value)}
-            >
-              <option value="">-- Select Weapon --</option>
-              {weapons.map(w => (
-                <option key={w.id} value={w.id}>{w.name}</option>
-              ))}
-            </select>
-          )}
-        </div>
-        
-        <div className="p-4 bg-stone-950/50 rounded text-stone-500 text-sm text-center border border-stone-800 border-dashed">
-          More slots (Armor, Talismans) coming soon...
-        </div>
+        {loading ? (
+          <div className="text-stone-500 animate-pulse text-center py-10">Accessing Inventory...</div>
+        ) : (
+          <div className="space-y-6">
+            {/* Sekce: Zbraně */}
+            <div>
+              <h3 className="text-stone-400 text-sm uppercase font-bold mb-2 flex items-center gap-2">
+                <span className="w-2 h-2 bg-amber-600 rounded-full"></span> Armament
+              </h3>
+              <EquipmentSlot 
+                label="Right Hand" 
+                value={equipment.rightHand} 
+                options={weapons} 
+                onChange={(v: string) => setEquipment(prev => ({...prev, rightHand: v}))} 
+              />
+            </div>
+
+            {/* Sekce: Brnění (Grid 2x2) */}
+            <div>
+              <h3 className="text-stone-400 text-sm uppercase font-bold mb-2 mt-6 flex items-center gap-2">
+                <span className="w-2 h-2 bg-stone-500 rounded-full"></span> Armor
+              </h3>
+              <div className="grid grid-cols-2 gap-3">
+                <EquipmentSlot 
+                  label="Head" 
+                  value={equipment.head} 
+                  options={armors} // Zobrazí všechny armory (pro zjednodušení)
+                  onChange={(v: string) => setEquipment(prev => ({...prev, head: v}))} 
+                />
+                <EquipmentSlot 
+                  label="Chest" 
+                  value={equipment.chest} 
+                  options={armors} 
+                  onChange={(v: string) => setEquipment(prev => ({...prev, chest: v}))} 
+                />
+                <EquipmentSlot 
+                  label="Gauntlets" 
+                  value={equipment.hands} 
+                  options={armors} 
+                  onChange={(v: string) => setEquipment(prev => ({...prev, hands: v}))} 
+                />
+                <EquipmentSlot 
+                  label="Legs" 
+                  value={equipment.legs} 
+                  options={armors} 
+                  onChange={(v: string) => setEquipment(prev => ({...prev, legs: v}))} 
+                />
+              </div>
+            </div>
+            
+            {/* Placeholder pro Talismany (zatím nefunkční, jen vizuál) */}
+            <div className="mt-8 pt-6 border-t border-stone-800 opacity-50">
+               <div className="text-xs text-stone-600 uppercase text-center">Talismans (Coming Soon)</div>
+               <div className="flex justify-center gap-2 mt-2">
+                  {[1,2,3,4].map(i => (
+                    <div key={i} className="w-10 h-10 border border-stone-800 rounded bg-stone-950"></div>
+                  ))}
+               </div>
+            </div>
+
+          </div>
+        )}
       </div>
 
     </div>
