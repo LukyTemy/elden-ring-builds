@@ -7,15 +7,13 @@ import { createClient } from "@/utils/supabase/server";
 export async function login(formData: FormData) {
   const supabase = await createClient();
 
-  const data = {
-    email: formData.get("email") as string,
-    password: formData.get("password") as string,
-  };
+  const email = formData.get("email") as string;
+  const password = formData.get("password") as string;
 
-  const { error } = await supabase.auth.signInWithPassword(data);
+  const { error } = await supabase.auth.signInWithPassword({ email, password });
 
   if (error) {
-    return redirect("/login?message=Could not authenticate");
+    redirect("/login?message=Could not authenticate");
   }
 
   revalidatePath("/", "layout");
@@ -25,30 +23,22 @@ export async function login(formData: FormData) {
 export async function signup(formData: FormData) {
   const supabase = await createClient();
 
-  const data = {
-    email: formData.get("email") as string,
-    password: formData.get("password") as string,
-    username: formData.get("username") as string,
-  };
+  const email = formData.get("email") as string;
+  const password = formData.get("password") as string;
+  const username = formData.get("username") as string;
 
-  // Validace username (aby nebylo prázdné)
-  if (!data.username || data.username.length < 3) {
-    return redirect("/login?message=Username must be at least 3 chars");
+  if (!username || username.length < 3) {
+    redirect("/login?message=Username must be at least 3 chars");
   }
 
   const { error } = await supabase.auth.signUp({
-    email: data.email,
-    password: data.password,
-    options: {
-      // Tady posíláme username, které náš SQL trigger chytí a uloží do tabulky profiles
-      data: {
-        username: data.username,
-      },
-    },
+    email,
+    password,
+    options: { data: { username } },
   });
 
   if (error) {
-    return redirect("/login?message=" + error.message);
+    redirect("/login?message=" + error.message);
   }
 
   revalidatePath("/", "layout");
