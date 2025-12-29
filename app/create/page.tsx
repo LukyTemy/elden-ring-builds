@@ -2,12 +2,13 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
+import { createClient } from "@/utils/supabase/client";
 import ItemSelector from '@/components/ItemSelector';
 import { Save } from 'lucide-react';
 
 export default function CreateBuild() {
   const router = useRouter();
+  const supabase = createClient();
   const [isSaving, setIsSaving] = useState(false);
   const [buildName, setBuildName] = useState("");
 
@@ -16,7 +17,6 @@ export default function CreateBuild() {
     dexterity: 10, intelligence: 10, faith: 10, arcane: 10
   });
 
-  // ROZŠÍŘENÉ RUCE PODLE TVOJI STRUKTURY
   const [equipment, setEquipment] = useState({
     rightHand1: "", rightHand2: "", rightHand3: "",
     leftHand1: "", leftHand2: "", leftHand3: "",
@@ -27,7 +27,6 @@ export default function CreateBuild() {
   const [spells, setSpells] = useState(["", "", "", ""]);
   const [tears, setTears] = useState(["", ""]);
 
-  // --- VÝPOČTY (HP, FP, Stamina, Load) ---
   const soulLevel = Object.values(stats).reduce((a, b) => a + b, 0) - 79;
   const hp = Math.floor(300 + (stats.vigor * 15));
   const fp = Math.floor(50 + (stats.mind * 9));
@@ -65,8 +64,11 @@ export default function CreateBuild() {
     if (!isNameValid) return;
     setIsSaving(true);
 
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
+    // Získání uživatele přes dynamického klienta
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    
+    if (authError || !user) {
+      console.error("Auth error:", authError);
       router.push('/login');
       return;
     }
@@ -102,7 +104,7 @@ export default function CreateBuild() {
             onChange={(e) => setBuildName(e.target.value)}
             className="bg-transparent border-none text-5xl md:text-6xl font-serif font-bold text-amber-500 uppercase tracking-tight placeholder:text-stone-800 focus:ring-0 w-full p-0"
           />
-          <p className="text-stone-400 text-lg uppercase tracking-[0.4em] mt-3">
+          <p className="text-stone-400 text-lg uppercase tracking-[0.4em] mt-3 font-serif">
             Soul Level <span className="text-stone-100 font-bold ml-2">{soulLevel > 1 ? soulLevel : 1}</span>
           </p>
         </div>
@@ -145,9 +147,9 @@ export default function CreateBuild() {
                 { label: 'HP', val: hp, color: 'text-red-500' },
                 { label: 'FP', val: fp, color: 'text-blue-400' },
                 { label: 'Stamina', val: stamina, color: 'text-green-500' },
-                { label: 'Load', val: load, color: 'text-stone-300' }
+                { label: 'Equip Load', val: load, color: 'text-stone-300' }
               ].map((s) => (
-                <div key={s.label} className="bg-stone-950/60 border border-stone-800 p-4 rounded-lg text-center">
+                <div key={s.label} className="bg-stone-950/60 border border-stone-800 p-4 rounded-lg text-center shadow-inner">
                   <div className="text-xs uppercase tracking-widest text-stone-500 mb-2 font-bold">{s.label}</div>
                   <div className={`${s.color} font-bold text-xl`}>{s.val}</div>
                 </div>
@@ -178,7 +180,6 @@ export default function CreateBuild() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-            {/* ARMOR SECTION */}
             <div className="bg-stone-900/40 border border-stone-800 p-8 rounded-xl">
               <h3 className="text-stone-100 text-xl font-serif uppercase tracking-widest mb-8 border-b border-stone-800 pb-4">Armor Set</h3>
               <div className="space-y-6">
@@ -189,7 +190,6 @@ export default function CreateBuild() {
               </div>
             </div>
 
-            {/* TALISMANS & SPIRIT */}
             <div className="space-y-10">
               <div className="bg-stone-900/40 border border-stone-800 p-8 rounded-xl">
                 <h3 className="text-stone-100 text-xl font-serif uppercase tracking-widest mb-8 border-b border-stone-800 pb-4">Talismans</h3>
@@ -206,7 +206,6 @@ export default function CreateBuild() {
             </div>
           </div>
 
-          {/* MAGIC & MISC */}
           <div className="bg-stone-900/40 border border-stone-800 p-8 rounded-xl">
             <h3 className="text-stone-100 text-xl font-serif uppercase tracking-widest mb-8 border-b border-stone-800 pb-4">Magic & Wondrous Physick</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
@@ -224,7 +223,6 @@ export default function CreateBuild() {
               </div>
             </div>
           </div>
-
         </div>
       </div>
     </div>
