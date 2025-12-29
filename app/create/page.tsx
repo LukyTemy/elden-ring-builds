@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 
 interface Item {
@@ -11,18 +12,18 @@ interface Item {
 }
 
 export default function CreateBuild() {
-  // --- STATS STATE ---
+  const router = useRouter();
+  const [isSaving, setIsSaving] = useState(false);
+
   const [stats, setStats] = useState({
     vigor: 10, mind: 10, endurance: 10, strength: 10, 
     dexterity: 10, intelligence: 10, faith: 10, arcane: 10
   });
   
-  // --- INVENTORY STATE ---
   const [weapons, setWeapons] = useState<Item[]>([]);
   const [armors, setArmors] = useState<Item[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // --- SELECTION STATE ---
   const [equipment, setEquipment] = useState({
     rightHand: "",
     head: "",
@@ -31,16 +32,14 @@ export default function CreateBuild() {
     legs: ""
   });
 
-  // Výpočet Soul Levelu
   const soulLevel = Object.values(stats).reduce((a, b) => a + b, 0) - 79;
 
   useEffect(() => {
     async function fetchGear() {
-      // Stáhneme zbraně i brnění najednou
       const { data, error } = await supabase
         .from('items')
         .select('id, name, category, image')
-        .in('category', ['weapons', 'armors']) // POZOR: Musí odpovídat tomu, co je v DB (množné číslo)
+        .in('category', ['weapons', 'armors'])
         .order('name');
       
       if (data) {
@@ -60,8 +59,37 @@ export default function CreateBuild() {
     }
   };
 
-  // Pomocná komponenta pro Select Slot
-  const EquipmentSlot = ({ label, value, options, onChange, icon }: any) => (
+  const saveBuild = async () => {
+    setIsSaving(true);
+    
+    const buildData = {
+      name: "Untitled Tarnished",
+      stats: stats,
+      equipment: equipment
+    };
+
+    try {
+      const { data, error } = await supabase
+        .from('builds')
+        .insert([buildData])
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      if (data) {
+        alert(`Build saved! ID: ${data.id}`);
+      }
+      
+    } catch (error: any) {
+      console.error('Error saving build:', error);
+      alert('Failed to save build: ' + error.message);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const EquipmentSlot = ({ label, value, options, onChange }: any) => (
     <div className="bg-stone-950/50 p-3 rounded border border-stone-800 hover:border-amber-700 transition-colors group">
       <label className="block text-xs text-stone-500 mb-1 uppercase tracking-widest group-hover:text-amber-500 transition-colors">
         {label}
@@ -84,7 +112,6 @@ export default function CreateBuild() {
   return (
     <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8 pb-20">
       
-      {/* --- LEVÝ SLOUPEC: STATY --- */}
       <div className="bg-stone-900/80 backdrop-blur border border-stone-800 p-6 rounded-lg shadow-2xl">
         <div className="flex justify-between items-end mb-8 border-b border-stone-700 pb-4">
           <h2 className="text-3xl text-amber-500 font-serif tracking-widest">Attributes</h2>
@@ -115,7 +142,6 @@ export default function CreateBuild() {
         </div>
       </div>
 
-      {/* --- PRAVÝ SLOUPEC: VYBAVENÍ --- */}
       <div className="bg-stone-900/80 backdrop-blur border border-stone-800 p-6 rounded-lg shadow-2xl h-fit">
         <h2 className="text-3xl text-amber-500 font-serif tracking-widest mb-8 border-b border-stone-700 pb-4">
           Equipment
@@ -125,7 +151,6 @@ export default function CreateBuild() {
           <div className="text-stone-500 animate-pulse text-center py-10">Accessing Inventory...</div>
         ) : (
           <div className="space-y-6">
-            {/* Sekce: Zbraně */}
             <div>
               <h3 className="text-stone-400 text-sm uppercase font-bold mb-2 flex items-center gap-2">
                 <span className="w-2 h-2 bg-amber-600 rounded-full"></span> Armament
@@ -138,7 +163,6 @@ export default function CreateBuild() {
               />
             </div>
 
-            {/* Sekce: Brnění (Grid 2x2) */}
             <div>
               <h3 className="text-stone-400 text-sm uppercase font-bold mb-2 mt-6 flex items-center gap-2">
                 <span className="w-2 h-2 bg-stone-500 rounded-full"></span> Armor
@@ -147,7 +171,7 @@ export default function CreateBuild() {
                 <EquipmentSlot 
                   label="Head" 
                   value={equipment.head} 
-                  options={armors} // Zobrazí všechny armory (pro zjednodušení)
+                  options={armors} 
                   onChange={(v: string) => setEquipment(prev => ({...prev, head: v}))} 
                 />
                 <EquipmentSlot 
@@ -171,7 +195,6 @@ export default function CreateBuild() {
               </div>
             </div>
             
-            {/* Placeholder pro Talismany (zatím nefunkční, jen vizuál) */}
             <div className="mt-8 pt-6 border-t border-stone-800 opacity-50">
                <div className="text-xs text-stone-600 uppercase text-center">Talismans (Coming Soon)</div>
                <div className="flex justify-center gap-2 mt-2">
@@ -183,6 +206,16 @@ export default function CreateBuild() {
 
           </div>
         )}
+      </div>
+
+      <div className="col-span-1 lg:col-span-2 flex justify-center mt-8 pt-8 border-t border-stone-800">
+        <button
+          onClick={saveBuild}
+          disabled={isSaving}
+          className="bg-amber-600 hover:bg-amber-500 text-stone-950 font-bold py-4 px-12 rounded shadow-lg text-xl tracking-widest transition-all hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {isSaving ? 'SAVING...' : 'SAVE BUILD'}
+        </button>
       </div>
 
     </div>
