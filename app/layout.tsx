@@ -17,7 +17,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={cinzel.className}>
+      <body className={`${cinzel.className} bg-stone-950 text-stone-200`}>
         <Navbar />
         <main className="min-h-screen container mx-auto px-4 py-8">
           {children}
