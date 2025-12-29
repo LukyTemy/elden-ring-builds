@@ -1,81 +1,139 @@
-// scripts/seed.js
-const path = require('path');
-require('dotenv').config({ path: path.resolve(__dirname, '../.env.local') });
-
 const { createClient } = require('@supabase/supabase-js');
+require('dotenv').config({ path: '.env.local' });
 
-// Kontrola klíčů
-if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-  console.error('❌ Chyba: Nenalezeny klíče v .env.local');
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+if (!supabaseUrl || !supabaseServiceKey) {
+  console.error('Missing env variables! Check .env.local');
   process.exit(1);
 }
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-);
+const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-// Seznam kategorií, které chceme stáhnout
-// Název = endpoint v API
-const CATEGORIES = ['weapons', 'armors', 'shields', 'talismans', 'spirits'];
+// Vyhodil jsem crystal_tears, protože teď vrací chyby
+const ENDPOINTS = [
+  'weapons', 
+  'shields', 
+  'armors', 
+  'talismans', 
+  'sorceries', 
+  'incantations', 
+  'spirits'
+];
 
-async function fetchCategory(category) {
-  console.log(`⏳ Stahuji kategorii: ${category}...`);
-  try {
-    // Stáhneme 100 položek od každého (pro MVP stačí, API má stránkování)
-    const response = await fetch(`https://eldenring.fanapis.com/api/${category}?limit=100`);
-    const data = await response.json();
-    
-    // Mapování dat - sjednotíme různé formáty do naší tabulky
-    const itemsToInsert = data.data.map((item) => {
-      // Různé předměty mají různé statistiky, uložíme to, co je pro ně důležité
-      let statsData = {};
+// Opravená mapa včetně Gauntlet (singular)
+const ARMOR_MAP = {
+  'Helm': 'helm',
+  'Chest Armor': 'chest',
+  'Gauntlets': 'hands',
+  'Gauntlet': 'hands', 
+  'Leg Armor': 'legs'
+};
+
+function mapCategory(apiItem, endpoint) {
+  // 1. ARMORS
+  if (endpoint === 'armors') {
+    if (apiItem.category && ARMOR_MAP[apiItem.category]) {
+      return ARMOR_MAP[apiItem.category];
+    }
+    // Tiché ignorování neznámých kategorií, ať nespamujeme konzoli
+    return null;
+  }
+
+  // 2. ZBRANĚ A ŠTÍTY
+  if (endpoint === 'weapons' || endpoint === 'shields') {
+    return 'weapons';
+  }
+
+  // 3. OSTATNÍ
+  if (endpoint === 'talismans') return 'talismans';
+  if (endpoint === 'spirits') return 'spirits';
+  if (endpoint === 'sorceries' || endpoint === 'incantations') return 'spells';
+
+  return null;
+}
+
+async function fetchAllItems(endpoint) {
+  let allItems = [];
+  let page = 0;
+  let hasMore = true;
+
+  console.log(`\n⬇️  Fetching ${endpoint}...`);
+
+  while (hasMore) {
+    try {
+      const res = await fetch(`https://eldenring.fanapis.com/api/${endpoint}?limit=100&page=${page}`);
       
-      if (category === 'weapons' || category === 'shields') {
-        statsData = { scaling: item.scalesWith, attack: item.attack };
-      } else if (category === 'armors') {
-        statsData = { negation: item.dmgNegation }; // Fyzická/Magická obrana
-      } else if (category === 'talismans') {
-        statsData = { effect: item.effect };
-      } else if (category === 'spirits') {
-        statsData = { fpCost: item.fpCost, hpCost: item.hpCost, effect: item.effect };
+      // NEPRŮSTŘELNÁ KONTROLA: Nejdřív si vezmeme text, pak zkusíme parsovat
+      const text = await res.text();
+      
+      try {
+        const data = JSON.parse(text); // Tady to spadne, pokud to je HTML
+
+        if (data.data && data.data.length > 0) {
+          allItems = [...allItems, ...data.data];
+          process.stdout.write('.'); 
+          page++;
+        } else {
+          hasMore = false;
+          console.log(` Done (${allItems.length} items)`);
+        }
+      } catch (jsonError) {
+        console.warn(`\n⚠️ API Error for ${endpoint} page ${page}: Received HTML instead of JSON. Skipping rest of category.`);
+        hasMore = false; // Ukončíme stahování této kategorie, ale neshodíme skript
       }
+      
+      await new Promise(r => setTimeout(r, 150));
+
+    } catch (e) {
+      console.error(`\n❌ Network Error fetching ${endpoint}:`, e.message);
+      hasMore = false;
+    }
+  }
+  return allItems;
+}
+
+async function seed() {
+  console.log('--- ELDEN RING ROBUST SEEDER ---');
+  
+  console.log('🧹 Purging old data...');
+  await supabase.from('items').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+  
+  let totalInserted = 0;
+
+  for (const endpoint of ENDPOINTS) {
+    const apiItems = await fetchAllItems(endpoint);
+    
+    const dbItems = apiItems.map(item => {
+      const myCategory = mapCategory(item, endpoint);
+      if (!myCategory) return null;
 
       return {
-        api_id: item.id,
         name: item.name,
         image: item.image,
-        category: category, // 'weapons', 'armors' atd.
         description: item.description,
-        stats: statsData // Uložíme jako JSON
+        category: myCategory,
+        api_id: item.id
       };
-    });
+    }).filter(i => i !== null);
 
-    // Uložení do DB
-    const { error } = await supabase
-      .from('items')
-      .upsert(itemsToInsert, { onConflict: 'api_id' });
-
-    if (error) {
-      console.error(`❌ Chyba u kategorie ${category}:`, error.message);
-    } else {
-      console.log(`✅ ${category}: Uloženo ${itemsToInsert.length} položek.`);
+    if (dbItems.length > 0) {
+      const BATCH_SIZE = 500;
+      for (let i = 0; i < dbItems.length; i += BATCH_SIZE) {
+        const batch = dbItems.slice(i, i + BATCH_SIZE);
+        const { error } = await supabase.from('items').insert(batch);
+        
+        if (error) {
+          console.error(`❌ DB Insert Error:`, error.message);
+        } else {
+          totalInserted += batch.length;
+        }
+      }
     }
-
-  } catch (err) {
-    console.error(`❌ Chyba stahování ${category}:`, err);
   }
+
+  console.log(`\n🎉 SEED FINISHED! Total items: ${totalInserted}`);
 }
 
-async function seedAll() {
-  console.log('⚔️  START SEEDING...');
-  
-  // Projdeme všechny kategorie jednu po druhé
-  for (const cat of CATEGORIES) {
-    await fetchCategory(cat);
-  }
-  
-  console.log('🏁 Vše hotovo!');
-}
-
-seedAll();
+seed();
