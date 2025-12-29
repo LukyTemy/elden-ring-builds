@@ -78,7 +78,7 @@ export default function CreateBuild() {
       if (error) throw error;
 
       if (data) {
-        alert(`Build saved! ID: ${data.id}`);
+        router.push(`/build/${data.id}`);
       }
       
     } catch (error: any) {
