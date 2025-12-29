@@ -139,12 +139,6 @@ export default function BuildPage() {
             Soul Level <span className="text-white font-bold">{soulLevel > 1 ? soulLevel : 1}</span>
           </p>
         </div>
-        <Link 
-          href="/create"
-          className="px-6 py-2 border border-stone-700 hover:border-amber-600 rounded text-stone-400 hover:text-amber-500 transition-colors"
-        >
-          Create New
-        </Link>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">

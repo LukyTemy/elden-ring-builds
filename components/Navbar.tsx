@@ -7,11 +7,11 @@ export default function Navbar() {
         <Link href="/" className="text-2xl font-bold text-amber-500 tracking-wider hover:text-amber-400 transition-colors">
           ELDEN RING BUILDER
         </Link>
-        <div className="flex gap-6">
-          <Link href="/" className="hover:text-amber-500 transition-colors">
-            Home
+        <div className="flex gap-6 items-center">
+          <Link href="/builds" className="text-stone-400 hover:text-amber-500 transition-colors uppercase text-sm tracking-widest font-semibold">
+            Explore
           </Link>
-          <Link href="/create" className="text-amber-500 hover:text-amber-300 transition-colors font-semibold">
+          <Link href="/create" className="bg-amber-600 hover:bg-amber-700 text-stone-950 px-4 py-2 rounded font-bold transition-all text-sm uppercase tracking-wide">
             + New Build
           </Link>
         </div>

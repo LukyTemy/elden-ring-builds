@@ -14,6 +14,7 @@ interface Item {
 export default function CreateBuild() {
   const router = useRouter();
   const [isSaving, setIsSaving] = useState(false);
+  const [buildName, setBuildName] = useState("");
 
   const [stats, setStats] = useState({
     vigor: 10, mind: 10, endurance: 10, strength: 10, 
@@ -60,10 +61,15 @@ export default function CreateBuild() {
   };
 
   const saveBuild = async () => {
+    if (!buildName.trim()) {
+      alert("Please name your build before saving.");
+      return;
+    }
+
     setIsSaving(true);
     
     const buildData = {
-      name: "Untitled Tarnished",
+      name: buildName,
       stats: stats,
       equipment: equipment
     };
@@ -110,114 +116,127 @@ export default function CreateBuild() {
   );
 
   return (
-    <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8 pb-20">
+    <div className="max-w-6xl mx-auto pb-20">
       
-      <div className="bg-stone-900/80 backdrop-blur border border-stone-800 p-6 rounded-lg shadow-2xl">
-        <div className="flex justify-between items-end mb-8 border-b border-stone-700 pb-4">
-          <h2 className="text-3xl text-amber-500 font-serif tracking-widest">Attributes</h2>
-          <div className="text-right">
-            <span className="text-stone-400 text-sm uppercase">Soul Level</span>
-            <div className="text-4xl font-bold text-white">{soulLevel > 1 ? soulLevel : 1}</div>
-          </div>
-        </div>
-
-        <div className="space-y-3">
-          {Object.entries(stats).map(([key, val]) => (
-            <div key={key} className="flex items-center gap-4 hover:bg-stone-800/50 p-1 rounded transition-colors">
-              <label className="capitalize text-stone-400 w-28 font-medium">{key}</label>
-              <input 
-                type="number" 
-                value={val} 
-                onChange={(e) => handleStatChange(key as keyof typeof stats, e.target.value)}
-                className="w-14 bg-stone-950 border border-stone-700 rounded p-1 text-center text-amber-500 font-bold focus:border-amber-500 outline-none"
-              />
-              <input 
-                type="range" min="1" max="99" 
-                value={val} 
-                onChange={(e) => handleStatChange(key as keyof typeof stats, e.target.value)}
-                className="flex-1 accent-amber-600 h-1 bg-stone-700 rounded-lg appearance-none cursor-pointer"
-              />
-            </div>
-          ))}
-        </div>
+      {/* NAME INPUT */}
+      <div className="mb-8">
+        <input 
+          type="text" 
+          placeholder="Name your build..." 
+          className="w-full bg-transparent text-4xl md:text-5xl font-bold text-amber-500 placeholder-stone-700 border-b border-stone-800 focus:border-amber-500 outline-none py-4 text-center"
+          value={buildName}
+          onChange={(e) => setBuildName(e.target.value)}
+        />
       </div>
 
-      <div className="bg-stone-900/80 backdrop-blur border border-stone-800 p-6 rounded-lg shadow-2xl h-fit">
-        <h2 className="text-3xl text-amber-500 font-serif tracking-widest mb-8 border-b border-stone-700 pb-4">
-          Equipment
-        </h2>
-        
-        {loading ? (
-          <div className="text-stone-500 animate-pulse text-center py-10">Accessing Inventory...</div>
-        ) : (
-          <div className="space-y-6">
-            <div>
-              <h3 className="text-stone-400 text-sm uppercase font-bold mb-2 flex items-center gap-2">
-                <span className="w-2 h-2 bg-amber-600 rounded-full"></span> Armament
-              </h3>
-              <EquipmentSlot 
-                label="Right Hand" 
-                value={equipment.rightHand} 
-                options={weapons} 
-                onChange={(v: string) => setEquipment(prev => ({...prev, rightHand: v}))} 
-              />
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="bg-stone-900/80 backdrop-blur border border-stone-800 p-6 rounded-lg shadow-2xl">
+          <div className="flex justify-between items-end mb-8 border-b border-stone-700 pb-4">
+            <h2 className="text-3xl text-amber-500 font-serif tracking-widest">Attributes</h2>
+            <div className="text-right">
+              <span className="text-stone-400 text-sm uppercase">Soul Level</span>
+              <div className="text-4xl font-bold text-white">{soulLevel > 1 ? soulLevel : 1}</div>
             </div>
+          </div>
 
-            <div>
-              <h3 className="text-stone-400 text-sm uppercase font-bold mb-2 mt-6 flex items-center gap-2">
-                <span className="w-2 h-2 bg-stone-500 rounded-full"></span> Armor
-              </h3>
-              <div className="grid grid-cols-2 gap-3">
-                <EquipmentSlot 
-                  label="Head" 
-                  value={equipment.head} 
-                  options={armors} 
-                  onChange={(v: string) => setEquipment(prev => ({...prev, head: v}))} 
+          <div className="space-y-3">
+            {Object.entries(stats).map(([key, val]) => (
+              <div key={key} className="flex items-center gap-4 hover:bg-stone-800/50 p-1 rounded transition-colors">
+                <label className="capitalize text-stone-400 w-28 font-medium">{key}</label>
+                <input 
+                  type="number" 
+                  value={val} 
+                  onChange={(e) => handleStatChange(key as keyof typeof stats, e.target.value)}
+                  className="w-14 bg-stone-950 border border-stone-700 rounded p-1 text-center text-amber-500 font-bold focus:border-amber-500 outline-none"
                 />
-                <EquipmentSlot 
-                  label="Chest" 
-                  value={equipment.chest} 
-                  options={armors} 
-                  onChange={(v: string) => setEquipment(prev => ({...prev, chest: v}))} 
-                />
-                <EquipmentSlot 
-                  label="Gauntlets" 
-                  value={equipment.hands} 
-                  options={armors} 
-                  onChange={(v: string) => setEquipment(prev => ({...prev, hands: v}))} 
-                />
-                <EquipmentSlot 
-                  label="Legs" 
-                  value={equipment.legs} 
-                  options={armors} 
-                  onChange={(v: string) => setEquipment(prev => ({...prev, legs: v}))} 
+                <input 
+                  type="range" min="1" max="99" 
+                  value={val} 
+                  onChange={(e) => handleStatChange(key as keyof typeof stats, e.target.value)}
+                  className="flex-1 accent-amber-600 h-1 bg-stone-700 rounded-lg appearance-none cursor-pointer"
                 />
               </div>
-            </div>
-            
-            <div className="mt-8 pt-6 border-t border-stone-800 opacity-50">
-               <div className="text-xs text-stone-600 uppercase text-center">Talismans (Coming Soon)</div>
-               <div className="flex justify-center gap-2 mt-2">
-                  {[1,2,3,4].map(i => (
-                    <div key={i} className="w-10 h-10 border border-stone-800 rounded bg-stone-950"></div>
-                  ))}
-               </div>
-            </div>
-
+            ))}
           </div>
-        )}
-      </div>
+        </div>
 
-      <div className="col-span-1 lg:col-span-2 flex justify-center mt-8 pt-8 border-t border-stone-800">
-        <button
-          onClick={saveBuild}
-          disabled={isSaving}
-          className="bg-amber-600 hover:bg-amber-500 text-stone-950 font-bold py-4 px-12 rounded shadow-lg text-xl tracking-widest transition-all hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {isSaving ? 'SAVING...' : 'SAVE BUILD'}
-        </button>
-      </div>
+        <div className="bg-stone-900/80 backdrop-blur border border-stone-800 p-6 rounded-lg shadow-2xl h-fit">
+          <h2 className="text-3xl text-amber-500 font-serif tracking-widest mb-8 border-b border-stone-700 pb-4">
+            Equipment
+          </h2>
+          
+          {loading ? (
+            <div className="text-stone-500 animate-pulse text-center py-10">Accessing Inventory...</div>
+          ) : (
+            <div className="space-y-6">
+              <div>
+                <h3 className="text-stone-400 text-sm uppercase font-bold mb-2 flex items-center gap-2">
+                  <span className="w-2 h-2 bg-amber-600 rounded-full"></span> Armament
+                </h3>
+                <EquipmentSlot 
+                  label="Right Hand" 
+                  value={equipment.rightHand} 
+                  options={weapons} 
+                  onChange={(v: string) => setEquipment(prev => ({...prev, rightHand: v}))} 
+                />
+              </div>
 
+              <div>
+                <h3 className="text-stone-400 text-sm uppercase font-bold mb-2 mt-6 flex items-center gap-2">
+                  <span className="w-2 h-2 bg-stone-500 rounded-full"></span> Armor
+                </h3>
+                <div className="grid grid-cols-2 gap-3">
+                  <EquipmentSlot 
+                    label="Head" 
+                    value={equipment.head} 
+                    options={armors} 
+                    onChange={(v: string) => setEquipment(prev => ({...prev, head: v}))} 
+                  />
+                  <EquipmentSlot 
+                    label="Chest" 
+                    value={equipment.chest} 
+                    options={armors} 
+                    onChange={(v: string) => setEquipment(prev => ({...prev, chest: v}))} 
+                  />
+                  <EquipmentSlot 
+                    label="Gauntlets" 
+                    value={equipment.hands} 
+                    options={armors} 
+                    onChange={(v: string) => setEquipment(prev => ({...prev, hands: v}))} 
+                  />
+                  <EquipmentSlot 
+                    label="Legs" 
+                    value={equipment.legs} 
+                    options={armors} 
+                    onChange={(v: string) => setEquipment(prev => ({...prev, legs: v}))} 
+                  />
+                </div>
+              </div>
+              
+              <div className="mt-8 pt-6 border-t border-stone-800 opacity-50">
+                 <div className="text-xs text-stone-600 uppercase text-center">Talismans (Coming Soon)</div>
+                 <div className="flex justify-center gap-2 mt-2">
+                    {[1,2,3,4].map(i => (
+                      <div key={i} className="w-10 h-10 border border-stone-800 rounded bg-stone-950"></div>
+                    ))}
+                 </div>
+              </div>
+
+            </div>
+          )}
+        </div>
+
+        <div className="col-span-1 lg:col-span-2 flex justify-center mt-8 pt-8 border-t border-stone-800">
+          <button
+            onClick={saveBuild}
+            disabled={isSaving}
+            className="bg-amber-600 hover:bg-amber-500 text-stone-950 font-bold py-4 px-12 rounded shadow-lg text-xl tracking-widest transition-all hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isSaving ? 'SAVING...' : 'SAVE BUILD'}
+          </button>
+        </div>
+
+      </div>
     </div>
   );
 }
