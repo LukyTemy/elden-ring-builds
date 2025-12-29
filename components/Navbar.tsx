@@ -1,52 +1,108 @@
+"use client";
+
+import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
-import { createClient } from "@/utils/supabase/server";
+import { usePathname } from "next/navigation";
+import { createClient } from "@/utils/supabase/client";
 import UserNav from "./UserNav";
+import { Compass, Sword, PlusCircle, LayoutDashboard } from "lucide-react";
 
-export default async function Navbar() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+export default function Navbar() {
+  const pathname = usePathname();
+  const supabase = createClient();
+  const [user, setUser] = useState<any>(null);
+  const [profile, setProfile] = useState<any>(null);
 
-  let profile = null;
-  if (user) {
+  const fetchProfile = useCallback(async (userId: string) => {
     const { data } = await supabase
-      .from('profiles')
-      .select('username')
-      .eq('id', user.id)
+      .from("profiles")
+      .select("*")
+      .eq("id", userId)
       .single();
-    profile = data;
-  }
+    if (data) setProfile(data);
+  }, [supabase]);
 
-  // Společný styl pro odkazy, aby to ladilo
-  const linkStyle = "hidden md:block text-stone-400 hover:text-stone-100 transition-colors text-sm uppercase tracking-widest font-medium";
-  
-  // Styl pro support (trochu speciální hover barva - zlatá)
-  const supportStyle = "hidden md:flex items-center gap-2 text-stone-500 hover:text-amber-500 transition-colors text-sm uppercase tracking-widest font-medium";
+  useEffect(() => {
+    const checkUser = async () => {
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      setUser(currentUser);
+      if (currentUser) {
+        await fetchProfile(currentUser.id);
+      }
+    };
+
+    checkUser();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === "SIGNED_IN" && pathname === "/login") {
+        window.location.assign("/");
+        return;
+      }
+
+      if (event === "SIGNED_OUT") {
+        window.location.assign("/login");
+        return;
+      }
+
+      const currentUser = session?.user ?? null;
+      setUser(currentUser);
+
+      if (currentUser) {
+        await fetchProfile(currentUser.id);
+      } else {
+        setProfile(null);
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [supabase, pathname, fetchProfile]);
 
   return (
-    <nav className="border-b border-stone-800 bg-stone-950/80 backdrop-blur-md sticky top-0 z-50">
-      <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-        {/* LOGO */}
-        <Link href="/" className="text-2xl font-serif font-bold text-stone-100 tracking-wider hover:text-amber-500 transition-colors">
-          ELDEN RING PLANNER
+    <nav className="border-b border-stone-800 bg-stone-950/90 backdrop-blur-md sticky top-0 z-50">
+      <div className="max-w-7xl mx-auto px-4 h-20 flex items-center justify-between">
+        
+        <Link href="/" className="flex items-center gap-3 group">
+          <div className="w-10 h-10 bg-amber-600 rounded-full flex items-center justify-center shadow-lg shadow-amber-900/40 group-hover:bg-amber-500 transition-colors">
+            <Sword size={22} className="text-stone-950" />
+          </div>
+          <span className="text-2xl font-serif font-bold text-stone-100 tracking-tighter hidden sm:block">
+            ELDEN RING <span className="text-amber-500">PLANNER</span>
+          </span>
         </Link>
 
-        {/* LINKS + AUTH */}
-        <div className="flex items-center gap-8">
-          <Link href="/builds" className={linkStyle}>
-            Explore
-          </Link>
-          <Link href="/create" className={linkStyle}>
-            New Build
-          </Link>
-          
-          {/* Decentní Support odkaz */}
-          <Link href="https://ko-fi.com/lukastemelkov" target="_blank" className={supportStyle}>
-             {/* Ikonka srdce (volitelné) */}
-             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
-             Support
+        <div className="flex items-center gap-6">
+          <Link 
+            href="/builds" 
+            className={`flex items-center gap-2 text-sm font-bold uppercase tracking-widest transition-colors ${pathname === '/builds' ? 'text-amber-500' : 'text-stone-400 hover:text-stone-100'}`}
+          >
+            <Compass size={18} />
+            <span className="hidden md:block">Explore</span>
           </Link>
 
-          {/* User Profile / Login */}
+          {user && (
+            <>
+              <Link 
+                href="/dashboard" 
+                className={`flex items-center gap-2 text-sm font-bold uppercase tracking-widest transition-colors ${pathname === '/dashboard' ? 'text-amber-500' : 'text-stone-400 hover:text-stone-100'}`}
+              >
+                <LayoutDashboard size={18} />
+                <span className="hidden md:block">Dashboard</span>
+              </Link>
+              
+              <Link 
+                href="/create" 
+                className="flex items-center gap-2 px-4 py-2 bg-stone-900 border border-stone-700 rounded text-amber-500 text-sm font-bold uppercase tracking-widest hover:border-amber-600 transition-all"
+              >
+                <PlusCircle size={18} />
+                <span className="hidden md:block">Forge</span>
+              </Link>
+            </>
+          )}
+
+          <div className="h-6 w-[1px] bg-stone-800 mx-2 hidden sm:block"></div>
+
           <UserNav user={user} profile={profile} />
         </div>
       </div>
