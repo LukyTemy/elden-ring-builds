@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { createClient } from "@/utils/supabase/client";
 import BuildCard from "@/components/BuildCard";
-import { Loader2, Trash2, LayoutDashboard, Plus } from "lucide-react";
+import { Trash2, LayoutDashboard, Plus, Pencil } from "lucide-react";
 import Link from "next/link";
 
 export default function DashboardClient({ initialBuilds }: { initialBuilds: any[] }) {
@@ -21,7 +21,6 @@ export default function DashboardClient({ initialBuilds }: { initialBuilds: any[
     if (error) {
       alert("Error deleting build");
     } else {
-      // Okamžitá aktualizace UI bez nutnosti znovu načítat celou stránku
       setBuilds(builds.filter(b => b.id !== id));
     }
   };
@@ -53,13 +52,22 @@ export default function DashboardClient({ initialBuilds }: { initialBuilds: any[
             <div key={build.id} className="relative group animate-in fade-in slide-in-from-bottom-4 duration-500">
               <BuildCard build={build} />
               
-              <button 
-                onClick={() => deleteBuild(build.id)}
-                className="absolute top-4 right-4 p-2 bg-red-950/80 border border-red-900 text-red-400 rounded-md opacity-0 group-hover:opacity-100 transition-all hover:bg-red-600 hover:text-white z-10"
-                title="Delete Build"
-              >
-                <Trash2 size={18} />
-              </button>
+              <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-all z-20">
+                <Link 
+                  href={`/edit/${build.id}`}
+                  className="p-2 bg-stone-900/90 border border-stone-700 text-stone-400 rounded-md hover:border-amber-600 hover:text-amber-500 transition-all"
+                  title="Edit Build"
+                >
+                  <Pencil size={18} />
+                </Link>
+                <button 
+                  onClick={() => deleteBuild(build.id)}
+                  className="p-2 bg-red-950/80 border border-red-900 text-red-400 rounded-md hover:bg-red-600 hover:text-white transition-all"
+                  title="Delete Build"
+                >
+                  <Trash2 size={18} />
+                </button>
+              </div>
             </div>
           ))}
         </div>

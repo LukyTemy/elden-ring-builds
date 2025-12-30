@@ -9,22 +9,27 @@ export default async function DashboardPage() {
   if (!user) {
     redirect("/login");
   }
+
   const { data: builds, error } = await supabase
     .from('builds')
     .select(`
       *,
       profiles (
         username
-      )
+      ),
+      favorites (count)
     `)
     .eq('user_id', user.id)
     .order('created_at', { ascending: false });
 
   if (error) {
-    console.error("Chyba při načítání buildů:", error.message);
+    console.error("Error fetching builds:", error.message);
   }
 
-  const populatedBuilds = [...(builds || [])];
+  const populatedBuilds = (builds || []).map(build => ({
+    ...build,
+    favorites_count: (build as any).favorites?.[0]?.count || 0
+  }));
   
   if (populatedBuilds.length > 0) {
     const weaponIds = populatedBuilds
