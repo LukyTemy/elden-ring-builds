@@ -5,29 +5,46 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
 import UserNav from "./UserNav";
-import { Compass, Sword, PlusCircle, LayoutDashboard } from "lucide-react";
+import { Compass, Sword, PlusCircle, LayoutDashboard, Heart } from "lucide-react"; // Přidáno Heart
 
 export default function Navbar({ initialUser, initialProfile }: { initialUser: any, initialProfile: any }) {
   const pathname = usePathname();
   const router = useRouter();
   const supabase = createClient();
+  
   const [user, setUser] = useState(initialUser);
   const [profile, setProfile] = useState(initialProfile);
+
+  // KRITICKÁ OPRAVA: Synchronizace props se statem
+  // Když router.refresh() stáhne nová data na serveru, toto zajistí, že se projeví i v klientu
+  useEffect(() => {
+    setUser(initialUser);
+    setProfile(initialProfile);
+  }, [initialUser, initialProfile]);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       const currentUser = session?.user ?? null;
-      setUser(currentUser);
-
-      if (currentUser) {
-        const { data } = await supabase.from("profiles").select("*").eq("id", currentUser.id).single();
-        setProfile(data);
-      } else {
-        setProfile(null);
+      
+      if (event === "SIGNED_IN") {
+        setUser(currentUser);
+        // Načteme profil okamžitě na klientu pro bleskovou odezvu
+        if (currentUser) {
+          const { data } = await supabase.from("profiles").select("*").eq("id", currentUser.id).single();
+          setProfile(data);
+        }
+        router.refresh(); // Vynutíme refresh serverových komponent (cookies/session)
       }
 
-      if (event === "SIGNED_IN" || event === "SIGNED_OUT") {
+      if (event === "SIGNED_OUT") {
+        setUser(null);
+        setProfile(null);
         router.refresh();
+      }
+
+      // Pro ostatní eventy (TOKEN_REFRESHED atd.) jen aktualizujeme usera
+      if (event !== "SIGNED_IN" && event !== "SIGNED_OUT") {
+        setUser(currentUser);
       }
     });
 
@@ -51,6 +68,17 @@ export default function Navbar({ initialUser, initialProfile }: { initialUser: a
             <Compass size={18} />
             <span className="hidden md:block">Explore</span>
           </Link>
+
+          {/* NOVÝ ODKAZ: Support na Ko-fi */}
+          <a 
+            href="https://ko-fi.com/lukastemelkov" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 text-sm font-bold uppercase tracking-widest text-stone-400 hover:text-amber-500 transition-colors"
+          >
+            <Heart size={18} className="text-red-500 fill-red-500/10" />
+            <span className="hidden lg:block">Support</span>
+          </a>
 
           {user && (
             <>
