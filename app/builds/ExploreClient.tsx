@@ -2,13 +2,12 @@
 
 import { useState } from "react";
 import BuildCard from "@/components/BuildCard";
-import { Search, PlusCircle, Ghost } from "lucide-react";
+import { Search, Ghost } from "lucide-react";
 import Link from "next/link";
 
 export default function ExploreClient({ initialBuilds }: { initialBuilds: any[] }) {
   const [search, setSearch] = useState("");
   
-  // Používáme data, která přišla ze serveru, žádný useEffect s fetchBuilds
   const filteredBuilds = initialBuilds.filter(b => 
     b.name.toLowerCase().includes(search.toLowerCase()) || 
     (b.profiles?.username && b.profiles.username.toLowerCase().includes(search.toLowerCase()))
@@ -18,9 +17,14 @@ export default function ExploreClient({ initialBuilds }: { initialBuilds: any[] 
     <div className="min-h-screen pb-20 bg-stone-950">
       <div className="bg-stone-900/20 border-b border-stone-800/50 py-16">
         <div className="container mx-auto px-4 text-center">
-          <h1 className="text-5xl md:text-6xl font-serif font-bold text-amber-500 mb-4 tracking-tight uppercase tracking-widest">
+          <h1 className="text-5xl md:text-6xl font-serif font-bold text-amber-500 mb-4 tracking-widest uppercase">
             The Lands Between
           </h1>
+          {/* PŘIDANÝ PODTEXT */}
+          <p className="text-stone-400 mt-4 max-w-lg mx-auto italic font-serif">
+            Explore the most legendary equipment combinations and attribute distributions forged by the community of Tarnished.
+          </p>
+          
           <div className="max-w-md mx-auto relative mt-10">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-600" size={20} />
             <input 

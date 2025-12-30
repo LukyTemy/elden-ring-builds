@@ -16,18 +16,20 @@ interface Build {
   talismans: any[];
   spells: any[];
   crystal_tears: any[];
+  likes_count: number;
+  is_liked: boolean;
 }
 
-export default function BuildView({ initialBuild }: { initialBuild: any }) {
-  const [build] = useState<Build>(initialBuild);
+export default function BuildView({ initialBuild, userId }: { initialBuild: Build, userId?: string }) {
   const [isCopied, setIsCopied] = useState(false);
 
-  // --- VÝPOČTY (Data už jsou v props, takže proběhnou hned) ---
-  const soulLevel = Object.values(build.stats).reduce((a, b) => a + b, 0) - 79;
-  const hp = Math.floor(300 + (build.stats.vigor * 15));
-  const fp = Math.floor(50 + (build.stats.mind * 9));
-  const stamina = Math.floor(80 + (build.stats.endurance * 2));
-  const load = (45 + (build.stats.endurance * 1.5)).toFixed(1);
+  const build = initialBuild;
+  const stats = build.stats || {};
+  const soulLevel = Object.values(stats).reduce((a, b) => a + (Number(b) || 0), 0) - 79;
+  const hp = Math.floor(300 + ((stats.vigor || 0) * 15));
+  const fp = Math.floor(50 + ((stats.mind || 0) * 9));
+  const stamina = Math.floor(80 + ((stats.endurance || 0) * 2));
+  const load = (45 + ((stats.endurance || 0) * 1.5)).toFixed(1);
 
   const copyLink = () => {
     navigator.clipboard.writeText(window.location.href);
@@ -38,12 +40,19 @@ export default function BuildView({ initialBuild }: { initialBuild: any }) {
   return (
     <div className="max-w-6xl mx-auto px-4 py-8 animate-in fade-in duration-500">
       
-      {/* HEADER */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-12 border-b border-stone-800 pb-10">
-        <div className="flex items-center gap-8">
-          <FavoriteButton buildId={build.id} />
-          <div>
-            <h1 className="text-5xl md:text-6xl font-serif font-bold text-amber-500 uppercase tracking-tight mb-3">
+        <div className="flex items-center gap-6 w-full md:w-auto min-w-0">
+          <div className="shrink-0 relative z-20">
+            <FavoriteButton 
+              key={build.id}
+              buildId={build.id} 
+              initialLikes={build.likes_count} 
+              initialIsLiked={build.is_liked}
+              userId={userId}
+            />
+          </div>
+          <div className="min-w-0 flex-1">
+            <h1 className="text-4xl md:text-6xl font-serif font-bold text-amber-500 uppercase tracking-tight mb-3 break-words leading-[1.1]">
               {build.name}
             </h1>
             <p className="text-stone-400 text-lg uppercase tracking-[0.4em]">
@@ -52,7 +61,7 @@ export default function BuildView({ initialBuild }: { initialBuild: any }) {
           </div>
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-4 shrink-0 relative z-10">
           <button 
             onClick={copyLink}
             className="flex items-center gap-3 px-6 py-3 bg-stone-900 border border-stone-700 rounded-md hover:border-amber-600 transition-colors text-stone-200"
@@ -64,22 +73,20 @@ export default function BuildView({ initialBuild }: { initialBuild: any }) {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
-        
-        {/* STATS */}
         <div className="space-y-8">
           <div className="bg-stone-900/40 border border-stone-800 p-8 rounded-xl backdrop-blur-sm">
             <h3 className="text-stone-100 text-xl font-serif uppercase tracking-widest mb-8 border-b border-stone-800 pb-4 font-bold">Attributes</h3>
             <div className="space-y-6">
-              {Object.entries(build.stats).map(([stat, value]) => (
+              {Object.entries(stats).map(([stat, value]) => (
                 <div key={stat} className="group">
-                  <div className="flex justify-between text-sm uppercase tracking-widest text-stone-400 mb-2 font-bold group-hover:text-stone-200 transition-colors">
+                  <div className="flex justify-between text-sm uppercase tracking-widest text-stone-400 mb-2 font-bold group-hover:text-stone-200 transition-colors font-serif italic">
                     <span>{stat}</span>
                     <span className="text-amber-500 text-lg">{value}</span>
                   </div>
                   <div className="h-2 bg-stone-800 rounded-full overflow-hidden">
                     <div 
                       className="h-full bg-amber-600 transition-all duration-700" 
-                      style={{ width: `${(value / 99) * 100}%` }}
+                      style={{ width: `${((Number(value) || 0) / 99) * 100}%` }}
                     />
                   </div>
                 </div>
@@ -102,7 +109,6 @@ export default function BuildView({ initialBuild }: { initialBuild: any }) {
           </div>
         </div>
 
-        {/* EQUIPMENT */}
         <div className="lg:col-span-2 space-y-10">
           <div className="bg-stone-900/40 border border-stone-800 p-8 rounded-xl">
             <h3 className="text-stone-100 text-xl font-serif uppercase tracking-widest mb-8 border-b border-stone-800 pb-4 font-bold">Armaments</h3>
@@ -114,9 +120,9 @@ export default function BuildView({ initialBuild }: { initialBuild: any }) {
                     <div className="w-16 h-16 relative bg-stone-900 border border-stone-800 rounded-md shrink-0 overflow-hidden">
                       {item?.image && <Image src={item.image} alt={item.name} fill className="object-contain p-1" unoptimized />}
                     </div>
-                    <div>
+                    <div className="min-w-0 flex-1">
                       <div className="text-[10px] uppercase text-stone-600 font-bold tracking-widest mb-1">{slot}</div>
-                      <div className="text-stone-100 text-lg font-medium group-hover:text-amber-500 transition-colors">{item?.name || '---'}</div>
+                      <div className="text-stone-100 text-lg font-medium group-hover:text-amber-500 transition-colors truncate">{item?.name || '---'}</div>
                     </div>
                   </div>
                 );
@@ -125,20 +131,19 @@ export default function BuildView({ initialBuild }: { initialBuild: any }) {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-            {/* ARMOR */}
             <div className="bg-stone-900/40 border border-stone-800 p-8 rounded-xl">
               <h3 className="text-stone-100 text-xl font-serif uppercase tracking-widest mb-8 border-b border-stone-800 pb-4 font-bold">Armor</h3>
               <div className="space-y-5">
                 {['head', 'chest', 'hands', 'legs'].map((slot) => {
                   const item = build.equipment?.[slot];
                   return (
-                    <div key={slot} className="flex items-center gap-5 p-2 rounded hover:bg-stone-900/40 transition-colors">
+                    <div key={slot} className="flex items-center gap-5 p-2 rounded hover:bg-stone-900/40 transition-colors group">
                       <div className="w-14 h-14 relative bg-stone-900 border border-stone-800 rounded overflow-hidden shrink-0">
                         {item?.image && <Image src={item.image} alt={item.name} fill className="object-contain p-1" unoptimized />}
                       </div>
-                      <div className="flex flex-col">
-                        <span className="text-xs text-stone-500 uppercase tracking-widest mb-1 font-bold">{slot}</span>
-                        <span className="text-stone-100 text-md font-medium">{item?.name || 'No Armor'}</span>
+                      <div className="flex flex-col min-w-0">
+                        <span className="text-xs text-stone-500 uppercase tracking-widest mb-1 font-bold italic">{slot}</span>
+                        <span className="text-stone-100 text-md font-medium truncate">{item?.name || 'No Armor'}</span>
                       </div>
                     </div>
                   );
@@ -146,38 +151,36 @@ export default function BuildView({ initialBuild }: { initialBuild: any }) {
               </div>
             </div>
 
-            {/* TALISMANS */}
             <div className="bg-stone-900/40 border border-stone-800 p-8 rounded-xl">
               <h3 className="text-stone-100 text-xl font-serif uppercase tracking-widest mb-8 border-b border-stone-800 pb-4 font-bold">Talismans</h3>
               <div className="space-y-5">
-                {build.talismans?.map((item, i) => (
-                  <div key={i} className="flex items-center gap-5 p-2 rounded hover:bg-stone-900/40 transition-colors">
+                {build.talismans?.map((item: any, i: number) => (
+                  <div key={i} className="flex items-center gap-5 p-2 rounded hover:bg-stone-900/40 transition-colors group">
                     <div className="w-14 h-14 relative bg-stone-900 border border-stone-800 rounded overflow-hidden shrink-0">
                       {item?.image && <Image src={item.image} alt={item.name} fill className="object-contain p-1" unoptimized />}
                     </div>
-                    <span className="text-stone-100 text-md font-medium">{item?.name || 'Empty Slot'}</span>
+                    <span className="text-stone-100 text-md font-medium truncate">{item?.name || 'Empty Slot'}</span>
                   </div>
                 ))}
               </div>
             </div>
           </div>
 
-          {/* MAGIC */}
           <div className="bg-stone-900/40 border border-stone-800 p-8 rounded-xl">
             <h3 className="text-stone-100 text-xl font-serif uppercase tracking-widest mb-8 border-b border-stone-800 pb-4 font-bold">Magic & Wondrous Physick</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
               <div className="space-y-3">
                 <span className="text-xs text-stone-500 uppercase font-bold tracking-widest block mb-4">Spells</span>
-                {build.spells?.map((s, i) => s && (
-                  <div key={i} className="text-stone-200 text-md bg-stone-950/40 p-4 rounded-lg border border-stone-800/80 hover:border-blue-900 transition-colors">
+                {build.spells?.map((s: any, i: number) => s && (
+                  <div key={i} className="text-stone-200 text-md bg-stone-950/40 p-4 rounded-lg border border-stone-800/80 hover:border-blue-900 transition-colors truncate">
                     {s.name}
                   </div>
                 ))}
               </div>
               <div className="space-y-3">
                 <span className="text-xs text-stone-500 uppercase font-bold tracking-widest block mb-4">Crystal Tears</span>
-                {build.crystal_tears?.map((t, i) => t && (
-                  <div key={i} className="text-amber-500/90 text-md bg-stone-950/40 p-4 rounded-lg border border-stone-800/80 font-medium">
+                {build.crystal_tears?.map((t: any, i: number) => t && (
+                  <div key={i} className="text-amber-500/90 text-md bg-stone-950/40 p-4 rounded-lg border border-stone-800/80 font-medium truncate">
                     {t.name}
                   </div>
                 ))}

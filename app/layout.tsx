@@ -33,10 +33,10 @@ export default async function RootLayout({
   }
 
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body className={`${cinzel.className} bg-stone-950 text-stone-200 min-h-screen selection:bg-amber-900 selection:text-white`}>
         <Navbar initialUser={user} initialProfile={profile} />
-        <main className="container mx-auto px-4 py-8">
+        <main>
           {children}
         </main>
       </body>

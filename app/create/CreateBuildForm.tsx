@@ -10,7 +10,7 @@ import { Save, Loader2 } from 'lucide-react';
 export default function CreateBuildForm({ userId }: { userId: string }) {
   const router = useRouter();
   const supabase = createClient();
-  const [isSaving, setIsSaving] = useState(false);
+  const [isSaving, setIsLoading] = useState(false);
   const [buildName, setBuildName] = useState("");
   
   const [allItems, setAllItems] = useState<any[]>([]);
@@ -31,22 +31,14 @@ export default function CreateBuildForm({ userId }: { userId: string }) {
   const [spells, setSpells] = useState(["", "", "", ""]);
   const [tears, setTears] = useState(["", ""]);
 
-  // 1. OPRAVA LIMITU: Stahujeme ve dvou várkách, abychom obešli limit 1000
   useEffect(() => {
     async function loadData() {
       setIsDataLoading(true);
-      console.log("Stahuji data (část 1)...");
-      
-      // První várka 0-1000
       const req1 = supabase.from('items').select('*').range(0, 999);
-      // Druhá várka 1000-2000
       const req2 = supabase.from('items').select('*').range(1000, 1999);
-
       const [res1, res2] = await Promise.all([req1, req2]);
-
       const combined = [...(res1.data || []), ...(res2.data || [])];
       setAllItems(combined);
-      console.log(`Celkem načteno ${combined.length} položek.`);
       setIsDataLoading(false);
     }
     loadData();
@@ -55,10 +47,6 @@ export default function CreateBuildForm({ userId }: { userId: string }) {
   const getItemsByCategory = (cat: string) => allItems.filter(i => i.category === cat);
 
   const soulLevel = Object.values(stats).reduce((a, b) => a + b, 0) - 79;
-  const hp = Math.floor(300 + (stats.vigor * 15));
-  const fp = Math.floor(50 + (stats.mind * 9));
-  const stamina = Math.floor(80 + (stats.endurance * 2));
-  const load = (45 + (stats.endurance * 1.5)).toFixed(1);
 
   const handleStatChange = (stat: string, val: number) => {
     setStats(prev => ({ ...prev, [stat]: val }));
@@ -87,7 +75,7 @@ export default function CreateBuildForm({ userId }: { userId: string }) {
 
   const handleSave = async () => {
     if (!buildName.trim()) return;
-    setIsSaving(true);
+    setIsLoading(true);
     try {
       const result = await createBuild({
         name: buildName,
@@ -99,12 +87,11 @@ export default function CreateBuildForm({ userId }: { userId: string }) {
       });
       
       if (result.success) {
-        router.push("/dashboard"); // Přesměrování proběhne v klidu zde
+        router.push("/dashboard");
       }
     } catch (err: any) {
-      // Teď už to zachytí jen skutečné chyby, ne redirect
       alert("Error: " + err.message);
-      setIsSaving(false);
+      setIsLoading(false);
     }
   };
 
@@ -117,6 +104,7 @@ export default function CreateBuildForm({ userId }: { userId: string }) {
             type="text"
             placeholder="ENTER BUILD NAME..."
             value={buildName}
+            maxLength={32}
             onChange={(e) => setBuildName(e.target.value)}
             className="bg-transparent border-none text-5xl md:text-6xl font-serif font-bold text-amber-500 uppercase tracking-tight placeholder:text-stone-800 focus:ring-0 w-full p-0 outline-none"
           />
@@ -136,7 +124,6 @@ export default function CreateBuildForm({ userId }: { userId: string }) {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
-        {/* STATS */}
         <div className="space-y-8">
           <div className="bg-stone-900/40 border border-stone-800 p-8 rounded-xl backdrop-blur-sm sticky top-24">
             <h3 className="text-stone-100 text-xl font-serif uppercase tracking-widest mb-8 border-b border-stone-800 pb-4">Attributes</h3>
@@ -159,7 +146,6 @@ export default function CreateBuildForm({ userId }: { userId: string }) {
         </div>
 
         <div className="lg:col-span-2 space-y-10">
-          {/* WEAPONS */}
           <div className="bg-stone-900/40 border border-stone-800 p-8 rounded-xl">
             <h3 className="text-stone-100 text-xl font-serif uppercase tracking-widest mb-8 border-b border-stone-800 pb-4 font-bold">Armaments</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
@@ -179,7 +165,6 @@ export default function CreateBuildForm({ userId }: { userId: string }) {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-            {/* ARMOR */}
             <div className="bg-stone-900/40 border border-stone-800 p-8 rounded-xl">
               <h3 className="text-stone-100 text-xl font-serif uppercase tracking-widest mb-8 border-b border-stone-800 pb-4 font-bold">Armor Set</h3>
               <div className="space-y-6">
@@ -191,7 +176,6 @@ export default function CreateBuildForm({ userId }: { userId: string }) {
             </div>
 
             <div className="space-y-10">
-              {/* TALISMANS */}
               <div className="bg-stone-900/40 border border-stone-800 p-8 rounded-xl">
                 <h3 className="text-stone-100 text-xl font-serif uppercase tracking-widest mb-8 border-b border-stone-800 pb-4 font-bold">Talismans</h3>
                 <div className="space-y-6">
@@ -201,7 +185,6 @@ export default function CreateBuildForm({ userId }: { userId: string }) {
                 </div>
               </div>
               
-              {/* SPIRITS (Teď už načtené) */}
               <div className="bg-stone-900/40 border border-stone-800 p-8 rounded-xl">
                  <h3 className="text-stone-100 text-xl font-serif uppercase tracking-widest mb-4 border-b border-stone-800 pb-4 font-bold">Summon</h3>
                  <ItemSelector label="Spirit Ash" category="spirits" items={getItemsByCategory('spirits')} isLoading={isDataLoading} value={equipment.spirit} onSelect={(i: any) => handleItemSelect('spirit', i?.id || "")} />
@@ -209,7 +192,6 @@ export default function CreateBuildForm({ userId }: { userId: string }) {
             </div>
           </div>
 
-          {/* MAGIC & TEARS SECTION (VRÁCENO ZPĚT) */}
           <div className="bg-stone-900/40 border border-stone-800 p-8 rounded-xl">
             <h3 className="text-stone-100 text-xl font-serif uppercase tracking-widest mb-8 border-b border-stone-800 pb-4 font-bold">Magic & Wondrous Physick</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
