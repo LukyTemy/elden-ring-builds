@@ -6,6 +6,7 @@ import { createBuild } from './actions';
 import ItemSelector from '@/components/ItemSelector';
 import { createClient } from '@/utils/supabase/client';
 import { Save, Loader2 } from 'lucide-react';
+import { toast } from "sonner";
 
 export default function CreateBuildForm({ userId }: { userId: string }) {
   const router = useRouter();
@@ -74,10 +75,13 @@ export default function CreateBuildForm({ userId }: { userId: string }) {
 
   const handleSave = async () => {
     if (buildName.length < 3) {
-      alert("Název musí mít alespoň 3 znaky");
+      toast.error("Název musí mít alespoň 3 znaky");
       return;
     }
+
     setIsLoading(true);
+    const toastId = toast.loading("Kovám legendu...");
+
     try {
       const result = await createBuild({
         name: buildName,
@@ -89,10 +93,11 @@ export default function CreateBuildForm({ userId }: { userId: string }) {
       });
       
       if (result.success) {
+        toast.success("Build úspěšně vytvořen", { id: toastId });
         window.location.href = `/build/${result.buildId}`;
       }
     } catch (err: any) {
-      alert("Chyba při ukládání: " + err.message);
+      toast.error("Chyba při ukládání: " + err.message, { id: toastId });
       setIsLoading(false);
     }
   };

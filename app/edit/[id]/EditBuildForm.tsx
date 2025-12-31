@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { updateBuild } from './actions';
 import ItemSelector from '@/components/ItemSelector';
 import { Save, Loader2 } from 'lucide-react';
+import { toast } from "sonner";
 
 export default function EditBuildForm({ buildId, initialData, userId, allItems }: any) {
   const [isSaving, setIsLoading] = useState(false);
@@ -49,13 +50,17 @@ export default function EditBuildForm({ buildId, initialData, userId, allItems }
       newTears[idx] = itemId;
       setTears(newTears);
     } else {
-      setEquipment((prev: any) => ({ ...prev, [slot]: itemId }));
+      setEquipment(prev => ({ ...prev, [slot]: itemId }));
     }
   };
 
   const handleSave = async () => {
-    if (!buildName.trim()) return;
+    if (buildName.length < 3) {
+      toast.error("Build name must be at least 3 characters.");
+      return;
+    }
     setIsLoading(true);
+    const toastId = toast.loading("Saving changes...");
 
     try {
       const result = await updateBuild(buildId, {
@@ -68,10 +73,11 @@ export default function EditBuildForm({ buildId, initialData, userId, allItems }
       });
       
       if (result.success) {
+        toast.success("Changes saved successfully.", { id: toastId });
         window.location.href = `/build/${buildId}`;
       }
     } catch (err: any) {
-      alert("CHYBA: " + err.message);
+      toast.error("Error: " + err.message, { id: toastId });
       setIsLoading(false);
     }
   };
@@ -85,6 +91,7 @@ export default function EditBuildForm({ buildId, initialData, userId, allItems }
             value={buildName}
             onChange={(e) => setBuildName(e.target.value)}
             className="bg-transparent border-none text-5xl md:text-6xl font-serif font-bold text-amber-500 uppercase tracking-tight focus:ring-0 w-full p-0 outline-none mb-3"
+            placeholder="ENTER BUILD NAME..."
           />
           <p className="text-stone-400 text-lg uppercase tracking-[0.4em]">
             Soul Level <span className="text-stone-100 font-bold ml-2">{soulLevel > 1 ? soulLevel : 1}</span>
@@ -103,7 +110,7 @@ export default function EditBuildForm({ buildId, initialData, userId, allItems }
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
         <div className="space-y-8">
           <div className="bg-stone-900/40 border border-stone-800 p-8 rounded-xl backdrop-blur-sm sticky top-24">
-            <h3 className="text-stone-100 text-xl font-serif uppercase tracking-widest mb-8 border-b border-stone-800 pb-4">Attributes</h3>
+            <h3 className="text-stone-100 text-xl font-serif uppercase tracking-widest mb-8 border-b border-stone-800 pb-4 font-bold">Attributes</h3>
             <div className="space-y-6">
               {Object.entries(stats).map(([stat, value]) => (
                 <div key={stat}>
@@ -128,15 +135,15 @@ export default function EditBuildForm({ buildId, initialData, userId, allItems }
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
               <div className="space-y-6">
                 <span className="text-xs text-stone-500 uppercase font-bold tracking-widest block mb-2">Right Hand</span>
-                <ItemSelector label="Weapon 1" category="weapons" items={getItemsByCategory('weapons')} isLoading={false} value={equipment.rightHand1} onSelect={(i: any) => handleItemSelect('rightHand1', i?.id || "")} />
-                <ItemSelector label="Weapon 2" category="weapons" items={getItemsByCategory('weapons')} isLoading={false} value={equipment.rightHand2} onSelect={(i: any) => handleItemSelect('rightHand2', i?.id || "")} />
-                <ItemSelector label="Weapon 3" category="weapons" items={getItemsByCategory('weapons')} isLoading={false} value={equipment.rightHand3} onSelect={(i: any) => handleItemSelect('rightHand3', i?.id || "")} />
+                <ItemSelector label="Slot 1" category="weapons" items={getItemsByCategory('weapons')} isLoading={false} value={equipment.rightHand1} onSelect={(i: any) => handleItemSelect('rightHand1', i?.id || "")} />
+                <ItemSelector label="Slot 2" category="weapons" items={getItemsByCategory('weapons')} isLoading={false} value={equipment.rightHand2} onSelect={(i: any) => handleItemSelect('rightHand2', i?.id || "")} />
+                <ItemSelector label="Slot 3" category="weapons" items={getItemsByCategory('weapons')} isLoading={false} value={equipment.rightHand3} onSelect={(i: any) => handleItemSelect('rightHand3', i?.id || "")} />
               </div>
               <div className="space-y-6">
                 <span className="text-xs text-stone-500 uppercase font-bold tracking-widest block mb-2">Left Hand</span>
-                <ItemSelector label="Weapon 1" category="weapons" items={getItemsByCategory('weapons')} isLoading={false} value={equipment.leftHand1} onSelect={(i: any) => handleItemSelect('leftHand1', i?.id || "")} />
-                <ItemSelector label="Weapon 2" category="weapons" items={getItemsByCategory('weapons')} isLoading={false} value={equipment.leftHand2} onSelect={(i: any) => handleItemSelect('leftHand2', i?.id || "")} />
-                <ItemSelector label="Weapon 3" category="weapons" items={getItemsByCategory('weapons')} isLoading={false} value={equipment.leftHand3} onSelect={(i: any) => handleItemSelect('leftHand3', i?.id || "")} />
+                <ItemSelector label="Slot 1" category="weapons" items={getItemsByCategory('weapons')} isLoading={false} value={equipment.leftHand1} onSelect={(i: any) => handleItemSelect('leftHand1', i?.id || "")} />
+                <ItemSelector label="Slot 2" category="weapons" items={getItemsByCategory('weapons')} isLoading={false} value={equipment.leftHand2} onSelect={(i: any) => handleItemSelect('leftHand2', i?.id || "")} />
+                <ItemSelector label="Slot 3" category="weapons" items={getItemsByCategory('weapons')} isLoading={false} value={equipment.leftHand3} onSelect={(i: any) => handleItemSelect('leftHand3', i?.id || "")} />
               </div>
             </div>
           </div>
@@ -161,6 +168,7 @@ export default function EditBuildForm({ buildId, initialData, userId, allItems }
                   ))}
                 </div>
               </div>
+              
               <div className="bg-stone-900/40 border border-stone-800 p-8 rounded-xl">
                  <h3 className="text-stone-100 text-xl font-serif uppercase tracking-widest mb-4 border-b border-stone-800 pb-4 font-bold">Summon</h3>
                  <ItemSelector label="Spirit Ash" category="spirits" items={getItemsByCategory('spirits')} isLoading={false} value={equipment.spirit} onSelect={(i: any) => handleItemSelect('spirit', i?.id || "")} />

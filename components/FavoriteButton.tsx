@@ -1,7 +1,9 @@
 "use client";
+
 import { useState } from 'react';
 import { Heart } from 'lucide-react';
 import { createClient } from '@/utils/supabase/client';
+import { toast } from "sonner";
 
 interface FavoriteButtonProps {
   buildId: string;
@@ -20,7 +22,7 @@ export default function FavoriteButton({ buildId, initialLikes, initialIsLiked, 
     e.stopPropagation();
 
     if (!userId) {
-      alert("Pro přidání do oblíbených se musíš přihlásit.");
+      toast.error("You must be logged in to favorite builds.");
       return;
     }
     if (isLoading) return;
@@ -48,10 +50,11 @@ export default function FavoriteButton({ buildId, initialLikes, initialIsLiked, 
         if (!error) {
           setCount(prev => prev + 1);
           setIsLiked(true);
+          toast.success("Build added to favorites.");
         }
       }
     } catch (err) {
-      console.error("Favorite toggle failed:", err);
+      toast.error("Failed to update favorite status.");
     } finally {
       setIsLoading(false);
     }

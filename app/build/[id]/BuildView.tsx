@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Image from 'next/image';
 import FavoriteButton from '@/components/FavoriteButton';
 import { Share2, Check } from 'lucide-react';
+import { toast } from "sonner";
 
 interface Build {
   id: string;
@@ -34,6 +35,7 @@ export default function BuildView({ initialBuild, userId }: { initialBuild: any,
   const copyLink = () => {
     navigator.clipboard.writeText(window.location.href);
     setIsCopied(true);
+    toast.success("Link copied to clipboard.");
     setTimeout(() => setIsCopied(false), 2000);
   };
 

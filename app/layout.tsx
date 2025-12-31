@@ -3,6 +3,7 @@ import { Cinzel } from "next/font/google";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
 import { createClient } from "@/utils/supabase/server";
+import { Toaster } from "sonner";
 
 const cinzel = Cinzel({ subsets: ["latin"] });
 
@@ -35,6 +36,7 @@ export default async function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${cinzel.className} bg-stone-950 text-stone-200 min-h-screen selection:bg-amber-900 selection:text-white`}>
+        <Toaster theme="dark" position="bottom-right" richColors />
         <Navbar initialUser={user} initialProfile={profile} />
         <main>
           {children}

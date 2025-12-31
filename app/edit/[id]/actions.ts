@@ -3,9 +3,13 @@
 import { createClient } from "@/utils/supabase/server";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import filter from "leo-profanity";
 
 const buildSchema = z.object({
-  name: z.string().min(3).max(50).trim(),
+  name: z.string().min(3).max(50).trim().refine(
+    (name) => !filter.check(name),
+    { message: "Build name contains inappropriate language." }
+  ),
   stats: z.object({
     vigor: z.number().int().min(1).max(99),
     mind: z.number().int().min(1).max(99),
@@ -16,7 +20,7 @@ const buildSchema = z.object({
     faith: z.number().int().min(1).max(99),
     arcane: z.number().int().min(1).max(99),
   }),
-  equipment: z.record(z.string().uuid().nullable().or(z.literal(""))),
+  equipment: z.record(z.string(), z.string().uuid().nullable().or(z.literal(""))),
   talismans: z.array(z.string().uuid().nullable().or(z.literal(""))),
   spells: z.array(z.string().uuid().nullable().or(z.literal(""))),
   tears: z.array(z.string().uuid().nullable().or(z.literal(""))),
@@ -28,7 +32,6 @@ export async function updateBuild(id: string, rawData: any) {
   if (!user) throw new Error("Unauthorized");
 
   const validated = buildSchema.parse(rawData);
-
   const clean = (val: any) => (val === "" || val === undefined ? null : val);
 
   const cleanedEquipment = Object.fromEntries(
