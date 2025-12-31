@@ -20,10 +20,10 @@ interface Build {
   is_liked: boolean;
 }
 
-export default function BuildView({ initialBuild, userId }: { initialBuild: Build, userId?: string }) {
+export default function BuildView({ initialBuild, userId }: { initialBuild: any, userId?: string }) {
+  const build = initialBuild;
   const [isCopied, setIsCopied] = useState(false);
 
-  const build = initialBuild;
   const stats = build.stats || {};
   const soulLevel = Object.values(stats).reduce((a, b) => a + (Number(b) || 0), 0) - 79;
   const hp = Math.floor(300 + ((stats.vigor || 0) * 15));
@@ -39,7 +39,6 @@ export default function BuildView({ initialBuild, userId }: { initialBuild: Buil
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-8 animate-in fade-in duration-500">
-      
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-12 border-b border-stone-800 pb-10">
         <div className="flex items-center gap-6 w-full md:w-auto min-w-0">
           <div className="shrink-0 relative z-20">

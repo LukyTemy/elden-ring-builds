@@ -59,7 +59,7 @@ export default function EditBuildForm({ buildId, initialData, userId, allItems }
 
     try {
       const result = await updateBuild(buildId, {
-        name: buildName, // OPRAVENO: Přidáno jméno do payloadu
+        name: buildName,
         stats,
         equipment,
         talismans,

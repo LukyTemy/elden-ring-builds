@@ -13,7 +13,6 @@ export default async function EditPage({ params }: Props) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  // Načteme build a všechny položky najednou
   const [buildRes, itemsRes1, itemsRes2] = await Promise.all([
     supabase.from("builds").select("*").eq("id", id).single(),
     supabase.from('items').select('*').range(0, 999),
@@ -27,7 +26,7 @@ export default async function EditPage({ params }: Props) {
 
   return (
     <EditBuildForm 
-      key={id} // Nutí React komponentu resetovat při změně ID
+      key={id} 
       buildId={id} 
       initialData={buildRes.data} 
       userId={user.id} 

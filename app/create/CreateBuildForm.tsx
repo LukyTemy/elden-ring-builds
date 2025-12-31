@@ -45,7 +45,6 @@ export default function CreateBuildForm({ userId }: { userId: string }) {
   }, [supabase]);
 
   const getItemsByCategory = (cat: string) => allItems.filter(i => i.category === cat);
-
   const soulLevel = Object.values(stats).reduce((a, b) => a + b, 0) - 79;
 
   const handleStatChange = (stat: string, val: number) => {
@@ -74,7 +73,10 @@ export default function CreateBuildForm({ userId }: { userId: string }) {
   };
 
   const handleSave = async () => {
-    if (!buildName.trim()) return;
+    if (buildName.length < 3) {
+      alert("Název musí mít alespoň 3 znaky");
+      return;
+    }
     setIsLoading(true);
     try {
       const result = await createBuild({
@@ -87,17 +89,16 @@ export default function CreateBuildForm({ userId }: { userId: string }) {
       });
       
       if (result.success) {
-        router.push("/dashboard");
+        window.location.href = `/build/${result.buildId}`;
       }
     } catch (err: any) {
-      alert("Error: " + err.message);
+      alert("Chyba při ukládání: " + err.message);
       setIsLoading(false);
     }
   };
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-8 animate-in fade-in duration-500">
-      
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-12 border-b border-stone-800 pb-10">
         <div className="w-full md:w-auto">
           <input
@@ -112,10 +113,9 @@ export default function CreateBuildForm({ userId }: { userId: string }) {
             Soul Level <span className="text-stone-100 font-bold ml-2">{soulLevel > 1 ? soulLevel : 1}</span>
           </p>
         </div>
-
         <button
           onClick={handleSave}
-          disabled={isSaving || !buildName.trim()}
+          disabled={isSaving || buildName.length < 3}
           className="flex items-center gap-3 px-10 py-4 bg-amber-600 hover:bg-amber-500 text-stone-950 rounded-md font-bold uppercase tracking-widest transition-all disabled:opacity-50"
         >
           {isSaving ? <Loader2 className="animate-spin" /> : <Save size={20} />}
@@ -126,7 +126,7 @@ export default function CreateBuildForm({ userId }: { userId: string }) {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
         <div className="space-y-8">
           <div className="bg-stone-900/40 border border-stone-800 p-8 rounded-xl backdrop-blur-sm sticky top-24">
-            <h3 className="text-stone-100 text-xl font-serif uppercase tracking-widest mb-8 border-b border-stone-800 pb-4">Attributes</h3>
+            <h3 className="text-stone-100 text-xl font-serif uppercase tracking-widest mb-8 border-b border-stone-800 pb-4 font-bold">Attributes</h3>
             <div className="space-y-6">
               {Object.entries(stats).map(([stat, value]) => (
                 <div key={stat}>
@@ -184,7 +184,6 @@ export default function CreateBuildForm({ userId }: { userId: string }) {
                   ))}
                 </div>
               </div>
-              
               <div className="bg-stone-900/40 border border-stone-800 p-8 rounded-xl">
                  <h3 className="text-stone-100 text-xl font-serif uppercase tracking-widest mb-4 border-b border-stone-800 pb-4 font-bold">Summon</h3>
                  <ItemSelector label="Spirit Ash" category="spirits" items={getItemsByCategory('spirits')} isLoading={isDataLoading} value={equipment.spirit} onSelect={(i: any) => handleItemSelect('spirit', i?.id || "")} />

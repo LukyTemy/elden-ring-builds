@@ -1,27 +1,34 @@
 "use client";
 
 import { useState } from "react";
-import { createClient } from "@/utils/supabase/client";
 import BuildCard from "@/components/BuildCard";
-import { Trash2, LayoutDashboard, Plus, Pencil } from "lucide-react";
+import { Trash2, LayoutDashboard, Plus, Pencil, Loader2 } from "lucide-react";
 import Link from "next/link";
+import { deleteBuildAction } from "./actions";
+import { useRouter } from "next/navigation";
 
 export default function DashboardClient({ initialBuilds }: { initialBuilds: any[] }) {
   const [builds, setBuilds] = useState(initialBuilds);
-  const supabase = createClient();
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const router = useRouter();
 
-  const deleteBuild = async (id: string) => {
+  const deleteBuild = async (e: React.MouseEvent, id: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+
     if (!confirm("Are you sure you want to discard this legend?")) return;
 
-    const { error } = await supabase
-      .from('builds')
-      .delete()
-      .eq('id', id);
-
-    if (error) {
-      alert("Error deleting build");
-    } else {
-      setBuilds(builds.filter(b => b.id !== id));
+    setDeletingId(id);
+    try {
+      const result = await deleteBuildAction(id);
+      if (result.success) {
+        setBuilds(prev => prev.filter(b => b.id !== id));
+        router.refresh();
+      }
+    } catch (err: any) {
+      alert("Error: " + err.message);
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -56,16 +63,15 @@ export default function DashboardClient({ initialBuilds }: { initialBuilds: any[
                 <Link 
                   href={`/edit/${build.id}`}
                   className="p-2 bg-stone-900/90 border border-stone-700 text-stone-400 rounded-md hover:border-amber-600 hover:text-amber-500 transition-all"
-                  title="Edit Build"
                 >
                   <Pencil size={18} />
                 </Link>
                 <button 
-                  onClick={() => deleteBuild(build.id)}
-                  className="p-2 bg-red-950/80 border border-red-900 text-red-400 rounded-md hover:bg-red-600 hover:text-white transition-all"
-                  title="Delete Build"
+                  onClick={(e) => deleteBuild(e, build.id)}
+                  disabled={deletingId === build.id}
+                  className="p-2 bg-red-950/80 border border-red-900 text-red-400 rounded-md hover:bg-red-600 hover:text-white transition-all disabled:opacity-50"
                 >
-                  <Trash2 size={18} />
+                  {deletingId === build.id ? <Loader2 size={18} className="animate-spin" /> : <Trash2 size={18} />}
                 </button>
               </div>
             </div>
