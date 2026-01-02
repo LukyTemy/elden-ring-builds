@@ -31,6 +31,8 @@ export default function EditBuildForm({ buildId, initialData, userId, allItems }
   const [spells, setSpells] = useState(initialData.spells || ["", "", "", ""]);
   const [tears, setTears] = useState(initialData.crystal_tears || ["", ""]);
 
+  const statOrder = ['vigor', 'mind', 'endurance', 'strength', 'dexterity', 'intelligence', 'faith', 'arcane'];
+
   const getItemsByCategory = (cat: string) => allItems.filter((i: any) => i.category === cat);
   const soulLevel = Object.values(stats).reduce((a: any, b: any) => a + (Number(b) || 0), 0) - 79;
 
@@ -152,19 +154,22 @@ export default function EditBuildForm({ buildId, initialData, userId, allItems }
           <div className="bg-stone-900/40 border border-stone-800 p-8 rounded-xl backdrop-blur-sm sticky top-24">
             <h3 className="text-stone-100 text-xl font-serif uppercase tracking-widest mb-8 border-b border-stone-800 pb-4 font-bold">Attributes</h3>
             <div className="space-y-6">
-              {Object.entries(stats).map(([stat, value]) => (
-                <div key={stat}>
-                  <div className="flex justify-between text-sm uppercase tracking-widest text-stone-400 mb-2 font-bold font-serif">
-                    <span>{stat}</span>
-                    <span className="text-amber-500 text-lg">{value as number}</span>
+              {statOrder.map((statKey) => {
+                const value = (stats as any)[statKey];
+                return (
+                  <div key={statKey}>
+                    <div className="flex justify-between text-sm uppercase tracking-widest text-stone-400 mb-2 font-bold font-serif">
+                      <span>{statKey}</span>
+                      <span className="text-amber-500 text-lg">{value as number}</span>
+                    </div>
+                    <input
+                      type="range" min="1" max="99" value={value as number}
+                      onChange={(e) => handleStatChange(statKey, parseInt(e.target.value))}
+                      className="w-full h-2 bg-stone-800 rounded-full appearance-none cursor-pointer accent-amber-600"
+                    />
                   </div>
-                  <input
-                    type="range" min="1" max="99" value={value as number}
-                    onChange={(e) => handleStatChange(stat, parseInt(e.target.value))}
-                    className="w-full h-2 bg-stone-800 rounded-full appearance-none cursor-pointer accent-amber-600"
-                  />
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </div>

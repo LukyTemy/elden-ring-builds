@@ -32,6 +32,8 @@ export default function CreateBuildForm({ userId }: { userId: string }) {
   const [spells, setSpells] = useState(["", "", "", ""]);
   const [tears, setTears] = useState(["", ""]);
 
+  const statOrder = ['vigor', 'mind', 'endurance', 'strength', 'dexterity', 'intelligence', 'faith', 'arcane'];
+
   useEffect(() => {
     async function loadData() {
       setIsDataLoading(true);
@@ -75,12 +77,12 @@ export default function CreateBuildForm({ userId }: { userId: string }) {
 
   const handleSave = async () => {
     if (buildName.length < 3) {
-      toast.error("Název musí mít alespoň 3 znaky");
+      toast.error("Build name must be at least 3 characters.");
       return;
     }
 
     setIsLoading(true);
-    const toastId = toast.loading("Kovám legendu...");
+    const toastId = toast.loading("Forging legend...");
 
     try {
       const result = await createBuild({
@@ -93,11 +95,11 @@ export default function CreateBuildForm({ userId }: { userId: string }) {
       });
       
       if (result.success) {
-        toast.success("Build úspěšně vytvořen", { id: toastId });
+        toast.success("Legend created successfully.", { id: toastId });
         window.location.href = `/build/${result.buildId}`;
       }
     } catch (err: any) {
-      toast.error("Chyba při ukládání: " + err.message, { id: toastId });
+      toast.error("Error: " + err.message, { id: toastId });
       setIsLoading(false);
     }
   };
@@ -133,19 +135,22 @@ export default function CreateBuildForm({ userId }: { userId: string }) {
           <div className="bg-stone-900/40 border border-stone-800 p-8 rounded-xl backdrop-blur-sm sticky top-24">
             <h3 className="text-stone-100 text-xl font-serif uppercase tracking-widest mb-8 border-b border-stone-800 pb-4 font-bold">Attributes</h3>
             <div className="space-y-6">
-              {Object.entries(stats).map(([stat, value]) => (
-                <div key={stat}>
-                  <div className="flex justify-between text-sm uppercase tracking-widest text-stone-400 mb-2 font-bold font-serif">
-                    <span>{stat}</span>
-                    <span className="text-amber-500 text-lg">{value}</span>
+              {statOrder.map((statKey) => {
+                const value = (stats as any)[statKey];
+                return (
+                  <div key={statKey}>
+                    <div className="flex justify-between text-sm uppercase tracking-widest text-stone-400 mb-2 font-bold font-serif">
+                      <span>{statKey}</span>
+                      <span className="text-amber-500 text-lg">{value}</span>
+                    </div>
+                    <input
+                      type="range" min="1" max="99" value={value}
+                      onChange={(e) => handleStatChange(statKey, parseInt(e.target.value))}
+                      className="w-full h-2 bg-stone-800 rounded-full appearance-none cursor-pointer accent-amber-600"
+                    />
                   </div>
-                  <input
-                    type="range" min="1" max="99" value={value}
-                    onChange={(e) => handleStatChange(stat, parseInt(e.target.value))}
-                    className="w-full h-2 bg-stone-800 rounded-full appearance-none cursor-pointer accent-amber-600"
-                  />
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </div>

@@ -26,11 +26,39 @@ export default function BuildView({ initialBuild, userId }: { initialBuild: any,
   const [isCopied, setIsCopied] = useState(false);
 
   const stats = build.stats || {};
+  const v = stats.vigor || 1;
+  const m = stats.mind || 1;
+  const e = stats.endurance || 1;
+
+  const calculateHP = (lvl: number) => {
+    if (lvl <= 25) return Math.floor(300 + 500 * Math.pow((lvl - 1) / 24, 1.5));
+    if (lvl <= 40) return Math.floor(800 + 650 * Math.pow((lvl - 25) / 15, 1.1));
+    if (lvl <= 60) return Math.floor(1450 + 450 * (1 - Math.pow(1 - (lvl - 40) / 20, 1.2)));
+    return Math.floor(1900 + 200 * (1 - Math.pow(1 - (lvl - 60) / 39, 1.2)));
+  };
+
+  const calculateFP = (lvl: number) => {
+    if (lvl <= 15) return Math.floor(50 + 45 * ((lvl - 1) / 14));
+    if (lvl <= 35) return Math.floor(95 + 105 * ((lvl - 15) / 20));
+    if (lvl <= 60) return Math.floor(200 + 150 * (1 - Math.pow(1 - (lvl - 35) / 25, 1.2)));
+    return Math.floor(350 + 100 * ((lvl - 60) / 39));
+  };
+
+  const calculateMaxLoad = (lvl: number) => {
+    let val;
+    if (lvl <= 25) val = 45 + 27 * ((lvl - 8) / 17);
+    else if (lvl <= 60) val = 72 + 48 * Math.pow((lvl - 25) / 35, 1.1);
+    else val = 120 + 40 * ((lvl - 60) / 39);
+    return val.toFixed(1);
+  };
+
   const soulLevel = Object.values(stats).reduce((a, b) => a + (Number(b) || 0), 0) - 79;
-  const hp = Math.floor(300 + ((stats.vigor || 0) * 15));
-  const fp = Math.floor(50 + ((stats.mind || 0) * 9));
-  const stamina = Math.floor(80 + ((stats.endurance || 0) * 2));
-  const load = (45 + ((stats.endurance || 0) * 1.5)).toFixed(1);
+  const hp = calculateHP(v);
+  const fp = calculateFP(m);
+  const stamina = Math.floor(80 + (e * 1.5)); 
+  const maxLoad = calculateMaxLoad(e);
+
+  const statOrder = ['vigor', 'mind', 'endurance', 'strength', 'dexterity', 'intelligence', 'faith', 'arcane'];
 
   const copyLink = () => {
     navigator.clipboard.writeText(window.location.href);
@@ -78,20 +106,23 @@ export default function BuildView({ initialBuild, userId }: { initialBuild: any,
           <div className="bg-stone-900/40 border border-stone-800 p-8 rounded-xl backdrop-blur-sm">
             <h3 className="text-stone-100 text-xl font-serif uppercase tracking-widest mb-8 border-b border-stone-800 pb-4 font-bold">Attributes</h3>
             <div className="space-y-6">
-              {Object.entries(stats).map(([stat, value]) => (
-                <div key={stat} className="group">
-                  <div className="flex justify-between text-sm uppercase tracking-widest text-stone-400 mb-2 font-bold group-hover:text-stone-200 transition-colors font-serif italic">
-                    <span>{stat}</span>
-                    <span className="text-amber-500 text-lg">{value}</span>
+              {statOrder.map((statKey) => {
+                const value = stats[statKey] || 0;
+                return (
+                  <div key={statKey} className="group">
+                    <div className="flex justify-between text-sm uppercase tracking-widest text-stone-400 mb-2 font-bold group-hover:text-stone-200 transition-colors font-serif italic">
+                      <span>{statKey}</span>
+                      <span className="text-amber-500 text-lg">{value as number}</span>
+                    </div>
+                    <div className="h-2 bg-stone-800 rounded-full overflow-hidden">
+                      <div 
+                        className="h-full bg-amber-600 transition-all duration-700" 
+                        style={{ width: `${((Number(value) || 0) / 99) * 100}%` }}
+                      />
+                    </div>
                   </div>
-                  <div className="h-2 bg-stone-800 rounded-full overflow-hidden">
-                    <div 
-                      className="h-full bg-amber-600 transition-all duration-700" 
-                      style={{ width: `${((Number(value) || 0) / 99) * 100}%` }}
-                    />
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
 
             <div className="mt-12 grid grid-cols-2 gap-4">
@@ -99,7 +130,7 @@ export default function BuildView({ initialBuild, userId }: { initialBuild: any,
                 { label: 'HP', val: hp, color: 'text-red-500' },
                 { label: 'FP', val: fp, color: 'text-blue-400' },
                 { label: 'Stamina', val: stamina, color: 'text-green-500' },
-                { label: 'Equip Load', val: load, color: 'text-stone-300' }
+                { label: 'Max Load', val: maxLoad, color: 'text-stone-300' }
               ].map((s) => (
                 <div key={s.label} className="bg-stone-950/60 border border-stone-800 p-4 rounded-lg text-center shadow-inner">
                   <div className="text-xs uppercase tracking-widest text-stone-500 mb-2 font-bold font-serif">{s.label}</div>
