@@ -1,13 +1,18 @@
 "use client";
 
 import { useState } from 'react';
-import { updateBuild } from './actions';
+import { useRouter } from 'next/navigation';
+import { updateBuild, deleteBuildAction } from './actions';
 import ItemSelector from '@/components/ItemSelector';
-import { Save, Loader2 } from 'lucide-react';
+import ConfirmationModal from '@/components/ConfirmationModal';
+import { Save, Loader2, Trash2 } from 'lucide-react';
 import { toast } from "sonner";
 
 export default function EditBuildForm({ buildId, initialData, userId, allItems }: any) {
+  const router = useRouter();
   const [isSaving, setIsLoading] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [buildName, setBuildName] = useState(initialData.name || "");
 
   const [stats, setStats] = useState(initialData.stats || {
@@ -82,8 +87,33 @@ export default function EditBuildForm({ buildId, initialData, userId, allItems }
     }
   };
 
+  const handleDelete = async () => {
+    setIsDeleting(true);
+    const toastId = toast.loading("Discarding legend...");
+    try {
+      const result = await deleteBuildAction(buildId);
+      if (result.success) {
+        toast.success("Legend discarded successfully.", { id: toastId });
+        router.push("/dashboard");
+      }
+    } catch (err: any) {
+      toast.error("Error: " + err.message, { id: toastId });
+      setIsDeleting(false);
+      setIsModalOpen(false);
+    }
+  };
+
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
+      <ConfirmationModal 
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onConfirm={handleDelete}
+        isLoading={isDeleting}
+        title="Discard Legend"
+        message="Are you certain you wish to erase this legend from the archives? This action cannot be undone."
+      />
+
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-12 border-b border-stone-800 pb-10">
         <div className="w-full md:w-auto">
           <input
@@ -97,14 +127,24 @@ export default function EditBuildForm({ buildId, initialData, userId, allItems }
             Soul Level <span className="text-stone-100 font-bold ml-2">{soulLevel > 1 ? soulLevel : 1}</span>
           </p>
         </div>
-        <button
-          onClick={handleSave}
-          disabled={isSaving}
-          className="flex items-center gap-3 px-10 py-4 bg-amber-600 hover:bg-amber-500 text-stone-950 rounded-md font-bold uppercase transition-all disabled:opacity-50"
-        >
-          {isSaving ? <Loader2 className="animate-spin" /> : <Save size={20} />}
-          {isSaving ? 'Updating...' : 'Update Build'}
-        </button>
+        <div className="flex items-center gap-4">
+          <button
+            onClick={() => setIsModalOpen(true)}
+            disabled={isSaving || isDeleting}
+            className="p-4 bg-red-950/30 border border-red-900/50 text-red-500 hover:bg-red-900/50 rounded-md transition-all disabled:opacity-50"
+            title="Discard Build"
+          >
+            <Trash2 size={24} />
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={isSaving || isDeleting}
+            className="flex items-center gap-3 px-10 py-4 bg-amber-600 hover:bg-amber-500 text-stone-950 rounded-md font-bold uppercase transition-all disabled:opacity-50"
+          >
+            {isSaving ? <Loader2 className="animate-spin" /> : <Save size={20} />}
+            {isSaving ? 'Updating...' : 'Update Build'}
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
