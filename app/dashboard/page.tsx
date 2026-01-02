@@ -14,19 +14,9 @@ export default async function DashboardPage() {
 
   const { data: builds, error } = await supabase
     .from('builds')
-    .select(`
-      *,
-      profiles (
-        username
-      ),
-      favorites (count)
-    `)
+    .select(`*, profiles (username), favorites (count)`)
     .eq('user_id', user.id)
     .order('created_at', { ascending: false });
-
-  if (error) {
-    console.error("Error fetching builds:", error.message);
-  }
 
   const populatedBuilds = (builds || []).map(build => ({
     ...build,
@@ -34,23 +24,44 @@ export default async function DashboardPage() {
   }));
   
   if (populatedBuilds.length > 0) {
-    const weaponIds = populatedBuilds
-      .map(b => b.equipment?.rightHand1)
-      .filter(id => id && typeof id === 'string');
+    const itemIds = new Set<string>();
+    populatedBuilds.forEach(build => {
+      Object.values(build.equipment || {}).forEach(id => {
+        if (id && typeof id === 'string') itemIds.add(id);
+      });
+      (build.talismans || []).forEach(id => {
+        if (id && typeof id === 'string') itemIds.add(id);
+      });
+    });
 
-    if (weaponIds.length > 0) {
-      const { data: weapons } = await supabase
+    if (itemIds.size > 0) {
+      const { data: items } = await supabase
         .from('items')
-        .select('id, name, image')
-        .in('id', weaponIds);
+        .select('id, name, image, weight')
+        .in('id', Array.from(itemIds));
 
-      const weaponMap = Object.fromEntries(weapons?.map(w => [w.id, w]) || []);
+      const itemMap = Object.fromEntries(items?.map(i => [i.id, i]) || []);
 
       populatedBuilds.forEach(build => {
-        const wId = build.equipment?.rightHand1;
-        if (wId && weaponMap[wId]) {
-          build.equipment.rightHand1 = weaponMap[wId];
+        let totalWeight = 0;
+        if (build.equipment?.rightHand1 && itemMap[build.equipment.rightHand1]) {
+          const item = itemMap[build.equipment.rightHand1];
+          build.equipment.rightHand1 = item;
         }
+
+        Object.values(build.equipment || {}).forEach(id => {
+          if (id && typeof id === 'string' && itemMap[id]) totalWeight += Number(itemMap[id].weight) || 0;
+        });
+        (build.talismans || []).forEach((id: string) => {
+          if (id && itemMap[id]) totalWeight += Number(itemMap[id].weight) || 0;
+        });
+
+        const maxLoad = 45 + ((build.stats?.endurance || 10) * 1.5);
+        const ratio = totalWeight / maxLoad;
+        if (ratio < 0.3) build.rollType = "Light";
+        else if (ratio < 0.7) build.rollType = "Medium";
+        else if (ratio <= 1.0) build.rollType = "Heavy";
+        else build.rollType = "Overloaded";
       });
     }
   }

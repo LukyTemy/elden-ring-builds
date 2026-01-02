@@ -4,7 +4,6 @@ import ExploreClient from "./ExploreClient";
 export default async function Page() {
   const supabase = await createClient();
   
-  // 1. Načteme buildy, jména autorů a počet favoritů (přes count)
   const { data: builds } = await supabase
     .from('builds')
     .select('*, profiles(username), favorites(count)')
@@ -12,28 +11,54 @@ export default async function Page() {
 
   const populatedBuilds = builds?.map(b => ({
     ...b,
-    favorites_count: b.favorites?.[0]?.count || 0 // Převedeme strukturu countu na číslo
+    favorites_count: b.favorites?.[0]?.count || 0
   })) || [];
 
-  // 2. POPULACE OBRÁZKŮ ZBRANÍ PRO KARTY
   if (populatedBuilds.length > 0) {
-    const weaponIds = populatedBuilds
-      .map(b => b.equipment?.rightHand1)
-      .filter(id => id && typeof id === 'string');
+    const itemIds = new Set<string>();
+    populatedBuilds.forEach(build => {
+      Object.values(build.equipment || {}).forEach(id => {
+        if (id && typeof id === 'string') itemIds.add(id);
+      });
+      (build.talismans || []).forEach(id => {
+        if (id && typeof id === 'string') itemIds.add(id);
+      });
+    });
 
-    if (weaponIds.length > 0) {
-      const { data: weapons } = await supabase
+    if (itemIds.size > 0) {
+      const { data: items } = await supabase
         .from('items')
-        .select('id, name, image')
-        .in('id', weaponIds);
+        .select('id, name, image, weight')
+        .in('id', Array.from(itemIds));
 
-      const weaponMap = Object.fromEntries(weapons?.map(w => [w.id, w]) || []);
+      const itemMap = Object.fromEntries(items?.map(i => [i.id, i]) || []);
 
       populatedBuilds.forEach(build => {
-        const wId = build.equipment?.rightHand1;
-        if (wId && weaponMap[wId]) {
-          build.equipment.rightHand1 = weaponMap[wId];
+        let totalWeight = 0;
+        
+        if (build.equipment?.rightHand1 && itemMap[build.equipment.rightHand1]) {
+          const item = itemMap[build.equipment.rightHand1];
+          build.equipment.rightHand1 = item;
+          totalWeight += Number(item.weight) || 0;
         }
+
+        const otherSlots = ['rightHand2', 'rightHand3', 'leftHand1', 'leftHand2', 'leftHand3', 'head', 'chest', 'hands', 'legs'];
+        otherSlots.forEach(slot => {
+          const id = build.equipment?.[slot];
+          if (id && itemMap[id]) totalWeight += Number(itemMap[id].weight) || 0;
+        });
+
+        (build.talismans || []).forEach((id: string) => {
+          if (id && itemMap[id]) totalWeight += Number(itemMap[id].weight) || 0;
+        });
+
+        const maxLoad = 45 + ((build.stats?.endurance || 10) * 1.5);
+        const ratio = totalWeight / maxLoad;
+
+        if (ratio < 0.3) build.rollType = "Light";
+        else if (ratio < 0.7) build.rollType = "Medium";
+        else if (ratio <= 1.0) build.rollType = "Heavy";
+        else build.rollType = "Overloaded";
       });
     }
   }

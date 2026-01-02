@@ -11,8 +11,12 @@ export default function BuildCard({ build }: { build: any }) {
   const mainWeapon = build.equipment?.rightHand1;
   const username = build.profiles?.username || "Tarnished";
 
-  const stats = build.stats;
-  const maxStatName = Object.keys(stats).reduce((a, b) => stats[a] > stats[b] ? a : b);
+  const rollColors: any = {
+    "Light": "text-cyan-400",
+    "Medium": "text-amber-400",
+    "Heavy": "text-red-400",
+    "Overloaded": "text-purple-400"
+  };
   
   return (
     <Link 
@@ -57,8 +61,10 @@ export default function BuildCard({ build }: { build: any }) {
 
         <div className="mt-auto pt-4 border-t border-stone-800/50 flex justify-between items-end">
              <div className="flex flex-col">
-                <span className="text-[10px] text-stone-600 uppercase tracking-widest">Focus</span>
-                <span className="text-xs text-stone-300 font-bold uppercase">{maxStatName}</span>
+                <span className="text-[10px] text-stone-600 uppercase tracking-widest">Roll Type</span>
+                <span className={`text-xs font-bold uppercase ${rollColors[build.rollType] || 'text-stone-300'}`}>
+                  {build.rollType || 'Unknown'}
+                </span>
              </div>
              {mainWeapon && (
                  <div className="flex flex-col items-end max-w-[50%]">
