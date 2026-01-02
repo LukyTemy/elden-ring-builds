@@ -18,12 +18,10 @@ export default function ItemModal({ isOpen, onClose, category, onSelect }: ItemM
   const [searchQuery, setSearchQuery] = useState("");
   const supabase = createClient();
 
-  // 1. PŘESNÉ MAPOVÁNÍ PODLE TVÉHO VÝPISU Z DATABÁZE
   const dbCategoryMap: Record<string, string | string[]> = {
-    weapons: "weapons",       // Přímá shoda
-    talismans: "talismans",   // Přímá shoda
-    spells: "spells",         // Přímá shoda
-    // Armor na frontendu spojíme se 4 kategoriemi v DB
+    weapons: "weapons",
+    talismans: "talismans",
+    spells: "spells",
     armor: ["helm", "chest", "hands", "legs"], 
   };
 
@@ -36,17 +34,13 @@ export default function ItemModal({ isOpen, onClose, category, onSelect }: ItemM
       const targetCategory = dbCategoryMap[category];
       
       let query = supabase
-        .from("items") // Tabulka se jmenuje 'items'
+        .from("items")
         .select("*")
         .order("name");
 
-      // 2. Logika pro filtrování
       if (Array.isArray(targetCategory)) {
-        // Pokud je to pole (Armor), použijeme .in()
-        // To najde všechno, co je helm NEBO chest NEBO hands NEBO legs
         query = query.in("category", targetCategory);
       } else {
-        // Pro zbraně, talismany atd. stačí rovná se
         query = query.eq("category", targetCategory);
       }
 
@@ -61,7 +55,7 @@ export default function ItemModal({ isOpen, onClose, category, onSelect }: ItemM
     };
 
     fetchItems();
-  }, [isOpen, category, supabase]); // dependencies
+  }, [isOpen, category, supabase]);
 
   const filteredItems = items.filter((item) =>
     item.name.toLowerCase().includes(searchQuery.toLowerCase())

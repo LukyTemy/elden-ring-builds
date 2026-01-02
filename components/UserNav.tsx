@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { signout } from "@/app/login/actions";
 import { useState, useRef, useEffect } from "react";
-import { LogOut, Bookmark, ChevronDown, User } from "lucide-react"; // Přidáno User ikona
+import { LogOut, Bookmark, ChevronDown, User } from "lucide-react";
 
 export default function UserNav({ user, profile }: { user: any, profile: any }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -27,7 +27,6 @@ export default function UserNav({ user, profile }: { user: any, profile: any }) 
     );
   }
 
-  // Zlepšená logika zobrazení jména
   const displayName = profile?.username || user.user_metadata?.username || user.email?.split('@')[0] || "Tarnished";
 
   return (

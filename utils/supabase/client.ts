@@ -8,7 +8,6 @@ export function createClient() {
       auth: {
         persistSession: true,
         detectSessionInUrl: true,
-        // Tento parametr v některých verzích pomáhá omezit zbytečné refreshe
         flowType: 'pkce',
       }
     }

@@ -6,7 +6,6 @@ import { revalidatePath } from 'next/cache'
 export async function toggleLike(buildId: string) {
   const supabase = await createClient()
 
-  // 1. Získání aktuálního uživatele
   const { data: { user }, error: userError } = await supabase.auth.getUser()
 
   if (userError || !user) {
@@ -15,7 +14,6 @@ export async function toggleLike(buildId: string) {
 
   const userId = user.id
 
-  // 2. Kontrola, zda lajk už existuje
   const { data: existingLike, error: fetchError } = await supabase
     .from('likes')
     .select('id')
@@ -24,7 +22,6 @@ export async function toggleLike(buildId: string) {
     .single()
 
   if (existingLike) {
-    // 3. Pokud existuje, smažeme ho (Unlike)
     const { error: deleteError } = await supabase
       .from('likes')
       .delete()
@@ -32,7 +29,6 @@ export async function toggleLike(buildId: string) {
 
     if (deleteError) throw new Error('Chyba při odebírání lajku.')
   } else {
-    // 4. Pokud neexistuje, vytvoříme ho (Like)
     const { error: insertError } = await supabase
       .from('likes')
       .insert([{ build_id: buildId, user_id: userId }])
@@ -40,10 +36,9 @@ export async function toggleLike(buildId: string) {
     if (insertError) throw new Error('Chyba při přidávání lajku.')
   }
 
-  // 5. Refresh dat na stránkách, kde se lajky zobrazují
   revalidatePath('/builds')
   revalidatePath(`/build/${buildId}`)
-  revalidatePath('/saved') // Pokud máš stránku s uloženými buildy
+  revalidatePath('/saved')
 
   return { success: true, isLiked: !existingLike }
 }

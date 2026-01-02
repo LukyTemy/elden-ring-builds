@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Explore Builds", // Ve výsledku to bude: "Explore Builds | Elden Ring Planner"
+  title: "Explore Builds",
   description: "Search through community created Elden Ring builds. Filter by stats, weapons, and playstyle.",
 };
 
